@@ -51,23 +51,49 @@ void joint_fit_sys()
   RooArgSet  chainVars     (cosTheta, NN_output, NN_selected, eventWeight);
   RooArgList axisVariables (cosTheta, NN_output);
 
-  // Define Categories
+  // Define Categories SK1-4, the 4 SK periods will be fit simultaneously.
   RooCategory dataPeriod("dataPeriod","SK Run Period");
   dataPeriod.defineType("SK1");
+  dataPeriod.defineType("SK2");
+  dataPeriod.defineType("SK3");
+  dataPeriod.defineType("SK4");
 
   TString objDir = "./data/" ;
   // Define variable used in the output tree
 
-  // Open SKI and SKII and SKIII files
-  TFile *skIfile   = new TFile((objDir +"SK-I.root"  ).Data(),  "READ");
+  // Open SKI ,SKII ,SKIII and SKIV files
+  TFile *skIfile    = new TFile((objDir +"SK-I.root"    ).Data(),  "READ");
+  TFile *skIIfile   = new TFile((objDir +"SK-II.root"   ).Data(),  "READ");
+  TFile *skIIIfile  = new TFile((objDir +"SK-III.root"  ).Data(),  "READ");
+  TFile *skIVfile   = new TFile((objDir +"SK-IV.root"   ).Data(),  "READ");
   // Grab the trees and Histograms we need.
   //SK1
   TTree *SKIChain              = (TTree*)skIfile->Get("dataHistoTMVAOutputTree");
   //TTree *SKIBkgChain           = (TTree*)skIfile->Get("bkgHistoTMVAOutputTree");
-  //TTree *SKISigChain           = (TTree*)skIfile->Get("tauHistoTMVAOutputTree");
+  //TTree *SKISigChain           = (TTree*)skIIIfile->Get("tauHistoTMVAOutputTree");
   TH2F  *tauHisto2DZenithSKI   = (TH2F*) skIfile->Get("tauHistoZenith2D");
   TH2F  *bkgHisto2DZenithSKI   = (TH2F*) skIfile->Get("bkgHistoZenith2D");
-/*
+  //SK2
+  TTree *SKIIChain              = (TTree*)skIIfile->Get("dataHistoTMVAOutputTree");
+  //TTree *SKIIBkgChain           = (TTree*)skIIfile->Get("bkgHistoTMVAOutputTree");
+  //TTree *SKIISigChain           = (TTree*)skIIfile->Get("tauHistoTMVAOutputTree");
+  TH2F  *tauHisto2DZenithSKII   = (TH2F*) skIIfile->Get("tauHistoZenith2D");
+  TH2F  *bkgHisto2DZenithSKII   = (TH2F*) skIIfile->Get("bkgHistoZenith2D");
+  //SK3
+  TTree *SKIIIChain              = (TTree*)skIIIfile->Get("dataHistoTMVAOutputTree");
+  //TTree *SKIIIBkgChain           = (TTree*)skIIIfile->Get("bkgHistoTMVAOutputTree");
+  //TTree *SKIIISigChain           = (TTree*)skIIIfile->Get("tauHistoTMVAOutputTree");
+  TH2F  *tauHisto2DZenithSKIII   = (TH2F*) skIIIfile->Get("tauHistoZenith2D");
+  TH2F  *bkgHisto2DZenithSKIII   = (TH2F*) skIIIfile->Get("bkgHistoZenith2D");
+  //SK4
+  TTree *SKIVChain              = (TTree*)skIVfile->Get("dataHistoTMVAOutputTree");
+  //TTree *SKIVBkgChain           = (TTree*)skIVfile->Get("bkgHistoTMVAOutputTree");
+  //TTree *SKIVSigChain           = (TTree*)skIVfile->Get("tauHistoTMVAOutputTree");
+  TH2F  *tauHisto2DZenithSKIV   = (TH2F*) skIVfile->Get("tauHistoZenith2D");
+  TH2F  *bkgHisto2DZenithSKIV   = (TH2F*) skIVfile->Get("bkgHistoZenith2D");
+
+  //Kernel estimation PDF, not used temporarily.
+  /*
   RooDataSet RoofitBkgSetI("bkgTreeI", "Bkg ", chainVars, RooFit::Import(*SKIBkgChain), 
 			   RooFit::Cut("NN_selected==1"), RooFit::WeightVar("eventWeight"));
   RooNDKeysPdf bkgKeysPdfI("bkgpdfI",     "Bkg I",   axisVariables, RoofitBkgSetI ,"m");
@@ -75,36 +101,110 @@ void joint_fit_sys()
 			   RooFit::Cut("NN_selected==1"), RooFit::WeightVar("eventWeight"));
   RooNDKeysPdf sigKeysPdfI("sigpdfI", "Sig I", axisVariables, RoofitSigSetI, "m");
   */
-  RooDataSet  dataSetI  ("dset", "Data", chainVars, RooFit::Import(*SKIChain), 
-			 RooFit::Cut("NN_selected==1"));
 
+  // Read the data set from TTree, and cut the events by NN_selected.
+  // SK1
+  RooDataSet  dataSetI  ("dset I", "Data", chainVars, RooFit::Import(*SKIChain), 
+			 RooFit::Cut("NN_selected==1"));
   RooDataHist bkgHistoI("bkgI", "Bkg Histo", 
                                axisVariables, bkgHisto2DZenithSKI);
   RooDataHist sigHistoI("sigI", "Sig Histo", 
                                axisVariables, tauHisto2DZenithSKI);
+  // SK2
+  RooDataSet  dataSetII  ("dset II", "Data", chainVars, RooFit::Import(*SKIIChain), 
+			 RooFit::Cut("NN_selected==1"));
+  RooDataHist bkgHistoII("bkgII", "Bkg Histo", 
+                               axisVariables, bkgHisto2DZenithSKII);
+  RooDataHist sigHistoII("sigII", "Sig Histo", 
+                               axisVariables, tauHisto2DZenithSKII);
+  // SK3
+  RooDataSet  dataSetIII  ("dset III", "Data", chainVars, RooFit::Import(*SKIIIChain), 
+			 RooFit::Cut("NN_selected==1"));
+  RooDataHist bkgHistoIII("bkgIII", "Bkg Histo", 
+                               axisVariables, bkgHisto2DZenithSKIII);
+  RooDataHist sigHistoIII("sigIII", "Sig Histo", 
+                               axisVariables, tauHisto2DZenithSKIII);
+  // SK4
+  RooDataSet  dataSetIV  ("dset IV", "Data", chainVars, RooFit::Import(*SKIVChain), 
+			 RooFit::Cut("NN_selected==1"));
+  RooDataHist bkgHistoIV("bkgIV", "Bkg Histo", 
+                               axisVariables, bkgHisto2DZenithSKIV);
+  RooDataHist sigHistoIV("sigIV", "Sig Histo", 
+                               axisVariables, tauHisto2DZenithSKIV);
 
   // Set the expected number of signal/background events (these are constants)
   // These are not normalized by any fraction (signal, background or DIS).
+  RooRealVar cc_nutau_xsec("cc_nutau_xsec", "cc_nutau_xsec", -3, 3);
+  //SK1
   RooRealVar expbkgI("expbkgI", "expbkgI",  bkgHisto2DZenithSKI->Integral());
   RooRealVar expsigI("expsigI", "expsigI",  tauHisto2DZenithSKI->Integral());
-  RooRealVar cc_nutau_xsec("cc_nutau_xsec", "cc_nutau_xsec", -3, 3);
   RooFormulaVar tau_normI("tau_normI", "expsigI*cc_nutau_xsec",  RooArgList(expsigI, cc_nutau_xsec));
+  //SK2
+  RooRealVar expbkgII("expbkgII", "expbkgII",  bkgHisto2DZenithSKII->Integral());
+  RooRealVar expsigII("expsigII", "expsigII",  tauHisto2DZenithSKII->Integral());
+  RooFormulaVar tau_normII("tau_normII", "expsigII*cc_nutau_xsec",  RooArgList(expsigII, cc_nutau_xsec));
+  //SK3
+  RooRealVar expbkgIII("expbkgIII", "expbkgIII",  bkgHisto2DZenithSKIII->Integral());
+  RooRealVar expsigIII("expsigIII", "expsigIII",  tauHisto2DZenithSKIII->Integral());
+  RooFormulaVar tau_normIII("tau_normIII", "expsigIII*cc_nutau_xsec",  RooArgList(expsigIII, cc_nutau_xsec));
+  //SK4
+  RooRealVar expbkgIV("expbkgIV", "expbkgIV",  bkgHisto2DZenithSKIV->Integral());
+  RooRealVar expsigIV("expsigIV", "expsigIV",  tauHisto2DZenithSKIV->Integral());
+  RooFormulaVar tau_normIV("tau_normIV", "expsigIV*cc_nutau_xsec",  RooArgList(expsigIV, cc_nutau_xsec));
 
   // Make base PDFs with background simulation(normal ATM neutrinos, except for tau), and tau neutrino
   // simulation. Both PDFs have to be normalized to livetime, because they are fixed in the final PDF,
   // only the systematic errors are varied in the fitting.
+  // SK1
   RooHistPdf  bkgPdfI("bkgpdfI", "Background PDF ", 
                              axisVariables, bkgHistoI, 0);
   RooHistPdf  sigPdfI("sigpdfI", "Signal PDF ",     
                              axisVariables, sigHistoI, 0);
+  // SK2
+  RooHistPdf  bkgPdfII("bkgpdfII", "Background PDF ", 
+                             axisVariables, bkgHistoII, 0);
+  RooHistPdf  sigPdfII("sigpdfII", "Signal PDF ",     
+                             axisVariables, sigHistoII, 0);
+  // SK3
+  RooHistPdf  bkgPdfIII("bkgpdfIII", "Background PDF ", 
+                             axisVariables, bkgHistoIII, 0);
+  RooHistPdf  sigPdfIII("sigpdfIII", "Signal PDF ",     
+                             axisVariables, sigHistoIII, 0);
+  // SK4
+  RooHistPdf  bkgPdfIV("bkgpdfIV", "Background PDF ", 
+                             axisVariables, bkgHistoIV, 0);
+  RooHistPdf  sigPdfIV("sigpdfIV", "Signal PDF ",     
+                             axisVariables, sigHistoIV, 0);
 
   // Create a list of PDFs and coefficients that will be used to construct the final PDF.
-  RooArgList pdf_list("pdf_list");
-  pdf_list.add(bkgPdfI);
-  pdf_list.add(sigPdfI);
-  RooArgList coeff_list("coeff_list");
-  coeff_list.add(expbkgI);
-  coeff_list.add(tau_normI);
+  // SK1
+  RooArgList pdf_listI("pdf_listI");
+  pdf_listI.add(bkgPdfI);
+  pdf_listI.add(sigPdfI);
+  RooArgList coeff_listI("coeff_listI");
+  coeff_listI.add(expbkgI);
+  coeff_listI.add(tau_normI);
+  // SK2
+  RooArgList pdf_listII("pdf_listII");
+  pdf_listII.add(bkgPdfII);
+  pdf_listII.add(sigPdfII);
+  RooArgList coeff_listII("coeff_listII");
+  coeff_listII.add(expbkgII);
+  coeff_listII.add(tau_normII);
+  // SK3
+  RooArgList pdf_listIII("pdf_listIII");
+  pdf_listIII.add(bkgPdfIII);
+  pdf_listIII.add(sigPdfIII);
+  RooArgList coeff_listIII("coeff_listIII");
+  coeff_listIII.add(expbkgIII);
+  coeff_listIII.add(tau_normIII);
+  // SK4
+  RooArgList pdf_listIV("pdf_listIV");
+  pdf_listIV.add(bkgPdfIV);
+  pdf_listIV.add(sigPdfIV);
+  RooArgList coeff_listIV("coeff_listIV");
+  coeff_listIV.add(expbkgIV);
+  coeff_listIV.add(tau_normIV);
 
   // Make PDFs for systematic errors. The PDF is built with the change in each bin after shifting
   // systematic error by one sigma. Here, we assume the change corresponding to the systematic error
@@ -127,71 +227,78 @@ void joint_fit_sys()
   // these variables should be independent of SK periods.
   
   // Read the file of histograms for systematic errors.
-  TFile* fijs_fc = new TFile("./sys_pdf/error.sk1.root", "READ");
+  TFile* fijs_sk1 = new TFile("./sys_pdf/error.sk1.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
+  // create Gaussian constraint for each systematic error.
   std::vector<std::string> sk1_errors;
-  TIter next(fijs_fc->GetListOfKeys());
+  TIter next(fijs_sk1->GetListOfKeys());
   TKey* key;
-  RooArgSet parts_final_pdf("parts_final_pdf");
-  
+  RooArgSet parts_pdfI("parts_pdfI");
   while ((key = (TKey*)next())) {
       std::string fij_name = key->GetName();
       std::string error_term = fij_name.substr(0,fij_name.length()-4) ;
       std::vector<std::string>::iterator iter;
       iter = find(sk1_errors.begin(), sk1_errors.end(), error_term);
-      TH2F* th2 = (TH2F*)fijs_fc->Get(fij_name.c_str());
-      if(iter == sk1_errors.end() && error_term != "CC_nutau_xsec" && th2->Integral()>0)
+      TH2F* th2 = (TH2F*)fijs_sk1->Get(fij_name.c_str());
+      if(iter == sk1_errors.end() && error_term != "CC_nutau_xsec" && th2->Integral() > 0)
+      // read fijs for each error, and use the untrivial fijs. DO NOT constrain CC_nutau_xsec.
       {
         sk1_errors.push_back(error_term);
-        std::string expr = error_term + "[-3,3]";
         TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
-                error_term.c_str(), error_term.c_str());
+                error_term.c_str(), error_term.c_str());//Gaussian constraint.
         tau_fit->factory(constraint_expr);
         TString constraint_name = TString::Format("%s_sys", error_term.c_str());
-        parts_final_pdf.add(*tau_fit->pdf(constraint_name));
+        parts_pdfI.add(*tau_fit->pdf(constraint_name));
       }
   }
-  
+ 
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  //and negative parts.
+  //positive
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_pos;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_pos;
-
   for(unsigned int i = 0; i < sk1_errors.size() ; i++) 
   {
     //build PDFs for each systematic error.
     string name = sk1_errors[i] + "_pos";
-    TH2F* hist_temp = (TH2F*)fijs_fc->Get(name.c_str());
+    TH2F* hist_temp = (TH2F*)fijs_sk1->Get(name.c_str());
     std::string datahist_name = "hist_" + name;
     RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
     std::string pdf_name = "pdf_" + name;
     hist_pdfs_pos[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
     std::string coeff_name = "coeff_" + name; 
     coeffs_pos[i].reset(new RooFormulaVar(coeff_name.c_str(), "@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk1_errors[i].c_str())) ));
-    pdf_list.add(*hist_pdfs_pos[i]);
-    coeff_list.add(*coeffs_pos[i]);
+    if(hist_temp->Integral() > 0)// Only keep the non-trivial PDFs.
+    {
+        pdf_listI.add(*hist_pdfs_pos[i]);
+        coeff_listI.add(*coeffs_pos[i]);
+    }
   }
-  
+  //negative
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_neg;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_neg;
-
   for(unsigned int i = 0; i < sk1_errors.size() ; i++) 
   {
     //build PDFs for each systematic error.
     string name = sk1_errors[i] + "_neg";
-    TH2F* hist_temp = (TH2F*)fijs_fc->Get(name.c_str());
+    TH2F* hist_temp = (TH2F*)fijs_sk1->Get(name.c_str());
     std::string datahist_name = "hist_" + name;
     RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
     std::string pdf_name = "pdf_" + name;
     hist_pdfs_neg[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
     std::string coeff_name = "coeff_" + name; 
     coeffs_neg[i].reset(new RooFormulaVar(coeff_name.c_str(), "-1*@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk1_errors[i].c_str())) ));
-    pdf_list.add(*hist_pdfs_neg[i]);
-    coeff_list.add(*coeffs_neg[i]);
+    if(hist_temp->Integral()>0)
+    {
+        pdf_listI.add(*hist_pdfs_neg[i]);
+        coeff_listI.add(*coeffs_neg[i]);
+    }
   }
-  
-  RooAddPdf model1I ("modelI",  "signal+bkgd SKI",  pdf_list, coeff_list );
-  parts_final_pdf.add(model1I);
-  RooProdPdf model_sys("model with sys errors", "model with sys errors", parts_final_pdf);
+  //stitch the parts of PDF to the final PDF.
+  RooAddPdf modelI ("modelI",  "signal+bkgd SKI",  pdf_listI, coeff_listI );
+  parts_pdfI.add(modelI);
+  RooProdPdf model_sys("model with sys errors", "model with sys errors", parts_pdfI);
   
   RooDataSet  *mc_bkg = bkgPdfI.generate(axisVariables, 2817);
   RooDataSet  *mc_sig = sigPdfI.generate(axisVariables, 56);
