@@ -37,6 +37,7 @@
 #include <RooFitResult.h>
 #include <RooProdPdf.h>
 #include <RooGaussian.h>
+#include <RooSimultaneous.h>
 
 void joint_fit_sys()
 {
@@ -216,7 +217,7 @@ void joint_fit_sys()
   //systematic errors that are used in the SK Osc3++ analysis. skip t2k related errors. Each error is
   //constrained with a Gaussian function centered at 0 and sigma=1. CC_nutau_xsec is not constrained.
   
-  // Read the file of histograms for systematic errors.
+  // Read the file of histograms for SK1 systematic errors.
   TFile* fijs_sk1 = new TFile("./sys_pdf/error.sk1.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
@@ -248,8 +249,8 @@ void joint_fit_sys()
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   //and negative parts.
   //positive
-  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_pos;
-  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_pos;
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posI;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posI;
   for(unsigned int i = 0; i < sk1_errors.size() ; i++) 
   {
     //build PDFs for each systematic error.
@@ -258,18 +259,18 @@ void joint_fit_sys()
     std::string datahist_name = "hist_" + name;
     RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
     std::string pdf_name = "pdf_" + name;
-    hist_pdfs_pos[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    hist_pdfs_posI[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
     std::string coeff_name = "coeff_" + name; 
-    coeffs_pos[i].reset(new RooFormulaVar(coeff_name.c_str(), "@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk1_errors[i].c_str())) ));
+    coeffs_posI[i].reset(new RooFormulaVar(coeff_name.c_str(), "@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk1_errors[i].c_str())) ));
     if(hist_temp->Integral() > 0)// Only keep the non-trivial PDFs.
     {
-        pdf_listI.add(*hist_pdfs_pos[i]);
-        coeff_listI.add(*coeffs_pos[i]);
+        pdf_listI.add(*hist_pdfs_posI[i]);
+        coeff_listI.add(*coeffs_posI[i]);
     }
   }
   //negative
-  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_neg;
-  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_neg;
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negI;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negI;
   for(unsigned int i = 0; i < sk1_errors.size() ; i++) 
   {
     //build PDFs for each systematic error.
@@ -278,25 +279,288 @@ void joint_fit_sys()
     std::string datahist_name = "hist_" + name;
     RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
     std::string pdf_name = "pdf_" + name;
-    hist_pdfs_neg[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    hist_pdfs_negI[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
     std::string coeff_name = "coeff_" + name; 
-    coeffs_neg[i].reset(new RooFormulaVar(coeff_name.c_str(), "-1*@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk1_errors[i].c_str())) ));
+    coeffs_negI[i].reset(new RooFormulaVar(coeff_name.c_str(), "-1*@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk1_errors[i].c_str())) ));
     if(hist_temp->Integral()>0)
     {
-        pdf_listI.add(*hist_pdfs_neg[i]);
-        coeff_listI.add(*coeffs_neg[i]);
+        pdf_listI.add(*hist_pdfs_negI[i]);
+        coeff_listI.add(*coeffs_negI[i]);
     }
   }
   //stitch the parts of PDF to the final PDF.
   RooAddPdf modelI ("modelI",  "signal+bkgd SKI",  pdf_listI, coeff_listI );
   parts_pdfI.add(modelI);
-  RooProdPdf model_sys("model with sys errors", "model with sys errors", parts_pdfI);
+  RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);
   
-  RooDataSet  *mc_bkg = bkgPdfI.generate(axisVariables, 2817);
-  RooDataSet  *mc_sig = sigPdfI.generate(axisVariables, 56);
-  mc_sig->append(*mc_bkg);
-  RooFitResult *r1 = model_sys.fitTo(*mc_sig, RooFit::Save(), RooFit::Strategy(1), RooFit::Minimizer("Minuit2", "Migrad"));
-  r1->Print();
+  // Read the file of histograms for sk2 systematic errors.
+  TFile* fijs_sk2 = new TFile("./sys_pdf/error.sk2.root", "READ");
+
+  // Read the names of systematic errors from fijs file, and store in a vector of string.
+  // create Gaussian constraint for each systematic error.
+  std::vector<std::string> sk2_errors;
+  TIter next2(fijs_sk2->GetListOfKeys());
+  //TKey* key;
+  RooArgSet parts_pdfII("parts_pdfII");
+  while ((key = (TKey*)next2())) {
+      std::string fij_name = key->GetName();
+      std::string error_term = fij_name.substr(0,fij_name.length()-4) ;
+      std::vector<std::string>::iterator iter;
+      iter = find(sk2_errors.begin(), sk2_errors.end(), error_term);
+      std::vector<std::string>::iterator iter1;
+      iter1 = find(sk1_errors.begin(), sk1_errors.end(), error_term);
+      TH2F* th2 = (TH2F*)fijs_sk2->Get(fij_name.c_str());
+      if(iter == sk2_errors.end() && error_term != "CC_nutau_xsec" && th2->Integral() > 0)
+      // read fijs for each error, and use the untrivial fijs. DO NOT constrain CC_nutau_xsec.
+      {
+        sk2_errors.push_back(error_term);
+        // Define the variables for systematic errors, 1 means shifting the systematic error by 1 sigma
+        // // The PDFs of shifting 1 sigma is built with Osc3++. 
+        TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
+                error_term.c_str(), error_term.c_str());//Gaussian constraint.
+        //if(iter1 == sk1_errors.end()) 
+        tau_fit->factory(constraint_expr);
+        TString constraint_name = TString::Format("%s_sys", error_term.c_str());
+        parts_pdfII.add(*tau_fit->pdf(constraint_name));
+      }
+  }
+ 
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  //and negative parts.
+  //positive
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posII;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posII;
+  for(unsigned int i = 0; i < sk2_errors.size() ; i++) 
+  {
+    //build PDFs for each systematic error.
+    string name = sk2_errors[i] + "_pos";
+    TH2F* hist_temp = (TH2F*)fijs_sk2->Get(name.c_str());
+    std::string datahist_name = "hist_" + name;
+    RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
+    std::string pdf_name = "pdf_" + name;
+    hist_pdfs_posII[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    std::string coeff_name = "coeff_" + name; 
+    coeffs_posII[i].reset(new RooFormulaVar(coeff_name.c_str(), "@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk2_errors[i].c_str())) ));
+    if(hist_temp->Integral() > 0)// Only keep the non-trivial PDFs.
+    {
+        pdf_listII.add(*hist_pdfs_posII[i]);
+        coeff_listII.add(*coeffs_posII[i]);
+    }
+  }
+  //negative
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negII;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negII;
+  for(unsigned int i = 0; i < sk2_errors.size() ; i++) 
+  {
+    //build PDFs for each systematic error.
+    string name = sk2_errors[i] + "_neg";
+    TH2F* hist_temp = (TH2F*)fijs_sk2->Get(name.c_str());
+    std::string datahist_name = "hist_" + name;
+    RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
+    std::string pdf_name = "pdf_" + name;
+    hist_pdfs_negII[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    std::string coeff_name = "coeff_" + name; 
+    coeffs_negII[i].reset(new RooFormulaVar(coeff_name.c_str(), "-1*@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk2_errors[i].c_str())) ));
+    if(hist_temp->Integral()>0)
+    {
+        pdf_listII.add(*hist_pdfs_negII[i]);
+        coeff_listII.add(*coeffs_negII[i]);
+    }
+  }
+  //stitch the parts of PDF to the final PDF.
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  RooAddPdf modelII ("modelII",  "signal+bkgd SKII",  pdf_listII, coeff_listII );
+  parts_pdfII.add(modelII);
+  RooProdPdf modelII_sys("modelII with sys errors", "modelII with sys errors", parts_pdfII);
+  
+  // Read the file of histograms for sk3 systematic errors.
+  TFile* fijs_sk3 = new TFile("./sys_pdf/error.sk3.root", "READ");
+
+  // Read the names of systematic errors from fijs file, and store in a vector of string.
+  // create Gaussian constraint for each systematic error.
+  std::vector<std::string> sk3_errors;
+  TIter next3(fijs_sk3->GetListOfKeys());
+  //TKey* key;
+  RooArgSet parts_pdfIII("parts_pdfIII");
+  while ((key = (TKey*)next3())) {
+      std::string fij_name = key->GetName();
+      std::string error_term = fij_name.substr(0,fij_name.length()-4) ;
+      std::vector<std::string>::iterator iter;
+      iter = find(sk3_errors.begin(), sk3_errors.end(), error_term);
+      std::vector<std::string>::iterator iter1;
+      iter1 = find(sk1_errors.begin(), sk1_errors.end(), error_term);
+      TH2F* th2 = (TH2F*)fijs_sk3->Get(fij_name.c_str());
+      if(iter == sk3_errors.end() &&  error_term != "CC_nutau_xsec" && th2->Integral() > 0)
+      // read fijs for each error, and use the untrivial fijs. DO NOT constrain CC_nutau_xsec.
+      {
+        sk3_errors.push_back(error_term);
+        // Define the variables for systematic errors, 1 means shifting the systematic error by 1 sigma
+        // // The PDFs of shifting 1 sigma is built with Osc3++. 
+        TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
+                error_term.c_str(), error_term.c_str());//Gaussian constraint.
+        //if(iter1 == sk1_errors.end())
+        tau_fit->factory(constraint_expr);
+        TString constraint_name = TString::Format("%s_sys", error_term.c_str());
+        parts_pdfIII.add(*tau_fit->pdf(constraint_name));
+      }
+  }
+ 
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  //and negative parts.
+  //positive
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posIII;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posIII;
+  for(unsigned int i = 0; i < sk3_errors.size() ; i++) 
+  {
+    //build PDFs for each systematic error.
+    string name = sk3_errors[i] + "_pos";
+    TH2F* hist_temp = (TH2F*)fijs_sk3->Get(name.c_str());
+    std::string datahist_name = "hist_" + name;
+    RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
+    std::string pdf_name = "pdf_" + name;
+    hist_pdfs_posIII[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    std::string coeff_name = "coeff_" + name; 
+    coeffs_posIII[i].reset(new RooFormulaVar(coeff_name.c_str(), "@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk3_errors[i].c_str())) ));
+    if(hist_temp->Integral() > 0)// Only keep the non-trivial PDFs.
+    {
+        pdf_listIII.add(*hist_pdfs_posIII[i]);
+        coeff_listIII.add(*coeffs_posIII[i]);
+    }
+  }
+  //negative
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negIII;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negIII;
+  for(unsigned int i = 0; i < sk3_errors.size() ; i++) 
+  {
+    //build PDFs for each systematic error.
+    string name = sk3_errors[i] + "_neg";
+    TH2F* hist_temp = (TH2F*)fijs_sk3->Get(name.c_str());
+    std::string datahist_name = "hist_" + name;
+    RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
+    std::string pdf_name = "pdf_" + name;
+    hist_pdfs_negIII[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    std::string coeff_name = "coeff_" + name; 
+    coeffs_negIII[i].reset(new RooFormulaVar(coeff_name.c_str(), "-1*@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk3_errors[i].c_str())) ));
+    if(hist_temp->Integral()>0)
+    {
+        pdf_listIII.add(*hist_pdfs_negIII[i]);
+        coeff_listIII.add(*coeffs_negIII[i]);
+    }
+  }
+  //stitch the parts of PDF to the final PDF.
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  RooAddPdf modelIII ("modelIII",  "signal+bkgd SKIII",  pdf_listIII, coeff_listIII );
+  parts_pdfIII.add(modelIII);
+  RooProdPdf modelIII_sys("modelIII with sys errors", "modelIII with sys errors", parts_pdfIII);
+  
+  // Read the file of histograms for sk4 systematic errors.
+  TFile* fijs_sk4 = new TFile("./sys_pdf/error.sk4.root", "READ");
+
+  // Read the names of systematic errors from fijs file, and store in a vector of string.
+  // create Gaussian constraint for each systematic error.
+  std::vector<std::string> sk4_errors;
+  TIter next4(fijs_sk4->GetListOfKeys());
+  //TKey* key;
+  RooArgSet parts_pdfIV("parts_pdfIV");
+  while ((key = (TKey*)next4())) {
+      std::string fij_name = key->GetName();
+      std::string error_term = fij_name.substr(0,fij_name.length()-4) ;
+      std::vector<std::string>::iterator iter;
+      iter = find(sk4_errors.begin(), sk4_errors.end(), error_term);
+      std::vector<std::string>::iterator iter1;
+      iter1 = find(sk1_errors.begin(), sk1_errors.end(), error_term);
+      TH2F* th2 = (TH2F*)fijs_sk4->Get(fij_name.c_str());
+      if(iter == sk4_errors.end() && error_term != "CC_nutau_xsec" && th2->Integral() > 0)
+      // read fijs for each error, and use the untrivial fijs. DO NOT constrain CC_nutau_xsec.
+      {
+        sk4_errors.push_back(error_term);
+        // Define the variables for systematic errors, 1 means shifting the systematic error by 1 sigma
+        // // The PDFs of shifting 1 sigma is built with Osc3++. 
+        TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
+                error_term.c_str(), error_term.c_str());//Gaussian constraint.
+        //if(iter1 == sk1_errors.end())
+        tau_fit->factory(constraint_expr);
+        TString constraint_name = TString::Format("%s_sys", error_term.c_str());
+        parts_pdfIV.add(*tau_fit->pdf(constraint_name));
+      }
+  }
+ 
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  //and negative parts.
+  //positive
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posIV;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posIV;
+  for(unsigned int i = 0; i < sk4_errors.size() ; i++) 
+  {
+    //build PDFs for each systematic error.
+    string name = sk4_errors[i] + "_pos";
+    TH2F* hist_temp = (TH2F*)fijs_sk4->Get(name.c_str());
+    std::string datahist_name = "hist_" + name;
+    RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
+    std::string pdf_name = "pdf_" + name;
+    hist_pdfs_posIV[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    std::string coeff_name = "coeff_" + name; 
+    coeffs_posIV[i].reset(new RooFormulaVar(coeff_name.c_str(), "@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk4_errors[i].c_str())) ));
+    if(hist_temp->Integral() > 0)// Only keep the non-trivial PDFs.
+    {
+        pdf_listIV.add(*hist_pdfs_posIV[i]);
+        coeff_listIV.add(*coeffs_posIV[i]);
+    }
+  }
+  //negative
+  std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negIV;
+  std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negIV;
+  for(unsigned int i = 0; i < sk4_errors.size() ; i++) 
+  {
+    //build PDFs for each systematic error.
+    string name = sk4_errors[i] + "_neg";
+    TH2F* hist_temp = (TH2F*)fijs_sk4->Get(name.c_str());
+    std::string datahist_name = "hist_" + name;
+    RooDataHist* datahist_temp = new RooDataHist(datahist_name.c_str(), datahist_name.c_str(), axisVariables, hist_temp);
+    std::string pdf_name = "pdf_" + name;
+    hist_pdfs_negIV[i].reset(new RooHistPdf(pdf_name.c_str(), pdf_name.c_str(), axisVariables, *datahist_temp));
+    std::string coeff_name = "coeff_" + name; 
+    coeffs_negIV[i].reset(new RooFormulaVar(coeff_name.c_str(), "-1*@0*@1", RooArgList(RooFit::RooConst(hist_temp->Integral()), *tau_fit->var(sk4_errors[i].c_str())) ));
+    if(hist_temp->Integral()>0)
+    {
+        pdf_listIV.add(*hist_pdfs_negIV[i]);
+        coeff_listIV.add(*coeffs_negIV[i]);
+    }
+  }
+  //stitch the parts of PDF to the final PDF.
+  //Create RooHistPDF for each systematic error. Divide each term to positive and
+  RooAddPdf modelIV ("modelIV",  "signal+bkgd SKIV",  pdf_listIV, coeff_listIV );
+  parts_pdfIV.add(modelIV);
+  RooProdPdf modelIV_sys("modelIV with sys errors", "modelIV with sys errors", parts_pdfIV);
+
+  // Add 4 SK periods' PDF to the RooSimultaneous
+  RooSimultaneous simultenousPDF("simPDF" ,"Joint PDF", dataPeriod);
+  simultenousPDF.addPdf(modelI_sys, "SK1");
+  simultenousPDF.addPdf(modelII_sys, "SK2");
+  simultenousPDF.addPdf(modelIII_sys, "SK3");
+  simultenousPDF.addPdf(modelIV_sys, "SK4");
+
+  // Create MC sample for study.
+  RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, 2817);
+  RooDataSet  *mc_sigI = sigPdfI.generate(axisVariables, 56);
+  mc_sigI->append(*mc_bkgI);
+  RooDataSet  *mc_bkgII = bkgPdfII.generate(axisVariables, 1496);
+  RooDataSet  *mc_sigII = sigPdfII.generate(axisVariables, 32);
+  mc_sigII->append(*mc_bkgII);
+  RooDataSet  *mc_bkgIII = bkgPdfIII.generate(axisVariables, 988);
+  RooDataSet  *mc_sigIII = sigPdfIII.generate(axisVariables, 19);
+  mc_sigIII->append(*mc_bkgIII);
+  RooDataSet  *mc_bkgIV = bkgPdfIV.generate(axisVariables, 3343);
+  RooDataSet  *mc_sigIV = sigPdfIV.generate(axisVariables, 68);
+  mc_sigIV->append(*mc_bkgIV);
+  RooDataSet combinedData("combinedData MC", "SKI-IV MC",
+                          axisVariables, RooFit::Index(dataPeriod),
+                          RooFit::Import("SK1", *mc_sigI),
+                          RooFit::Import("SK2", *mc_sigII),
+                          RooFit::Import("SK3", *mc_sigIII),
+                          RooFit::Import("SK4", *mc_sigIV));
+  //RooFitResult *r1 = simultenousPDF.fitTo(combinedData, RooFit::Save(), RooFit::Strategy(1), RooFit::Minimizer("Minuit2", "Migrad"));
+  //r1->Print();
 }
 
 int main(int argc, char** argv) {
