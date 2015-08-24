@@ -24,6 +24,7 @@
 
 #include <RooWorkspace.h>
 #include <RooAbsPdf.h>
+#include <RooAbsReal.h>
 #include <RooRealVar.h>
 #include <RooCategory.h>
 #include <RooDataSet.h>
@@ -38,6 +39,7 @@
 #include <RooProdPdf.h>
 #include <RooGaussian.h>
 #include <RooSimultaneous.h>
+#include <RooMinuit.h>
 
 void joint_fit_sys()
 {
@@ -290,7 +292,7 @@ void joint_fit_sys()
   }
   //stitch the parts of PDF to the final PDF.
   RooAddPdf modelI ("modelI",  "signal+bkgd SKI",  pdf_listI, coeff_listI );
-  parts_pdfI.add(modelI);
+  //parts_pdfI.add(modelI);
   RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);
   
   // Read the file of histograms for sk2 systematic errors.
@@ -370,7 +372,7 @@ void joint_fit_sys()
   //stitch the parts of PDF to the final PDF.
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   RooAddPdf modelII ("modelII",  "signal+bkgd SKII",  pdf_listII, coeff_listII );
-  parts_pdfII.add(modelII);
+  //parts_pdfII.add(modelII);
   RooProdPdf modelII_sys("modelII with sys errors", "modelII with sys errors", parts_pdfII);
   
   // Read the file of histograms for sk3 systematic errors.
@@ -450,7 +452,7 @@ void joint_fit_sys()
   //stitch the parts of PDF to the final PDF.
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   RooAddPdf modelIII ("modelIII",  "signal+bkgd SKIII",  pdf_listIII, coeff_listIII );
-  parts_pdfIII.add(modelIII);
+  //parts_pdfIII.add(modelIII);
   RooProdPdf modelIII_sys("modelIII with sys errors", "modelIII with sys errors", parts_pdfIII);
   
   // Read the file of histograms for sk4 systematic errors.
@@ -530,15 +532,16 @@ void joint_fit_sys()
   //stitch the parts of PDF to the final PDF.
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   RooAddPdf modelIV ("modelIV",  "signal+bkgd SKIV",  pdf_listIV, coeff_listIV );
-  parts_pdfIV.add(modelIV);
+  //parts_pdfIV.add(modelIV);
   RooProdPdf modelIV_sys("modelIV with sys errors", "modelIV with sys errors", parts_pdfIV);
 
   // Add 4 SK periods' PDF to the RooSimultaneous
   RooSimultaneous simultenousPDF("simPDF" ,"Joint PDF", dataPeriod);
-  simultenousPDF.addPdf(modelI_sys, "SK1");
-  simultenousPDF.addPdf(modelII_sys, "SK2");
-  simultenousPDF.addPdf(modelIII_sys, "SK3");
-  simultenousPDF.addPdf(modelIV_sys, "SK4");
+  simultenousPDF.addPdf(modelI, "SK1");
+  simultenousPDF.addPdf(modelII, "SK2");
+  simultenousPDF.addPdf(modelIII, "SK3");
+  simultenousPDF.addPdf(modelIV, "SK4");
+  RooProdPdf all_sys("model sys", "all sys terms", RooArgSet(modelI_sys, modelII_sys,  modelIII_sys, modelIV_sys));
 
   // Create MC sample for study.
   RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, 2817);
@@ -559,10 +562,13 @@ void joint_fit_sys()
                           RooFit::Import("SK2", *mc_sigII),
                           RooFit::Import("SK3", *mc_sigIII),
                           RooFit::Import("SK4", *mc_sigIV));
-  //RooFitResult *r1 = simultenousPDF.fitTo(combinedData, RooFit::Save(), RooFit::Strategy(1), RooFit::Minimizer("Minuit2", "Migrad"));
+  //RooFitResult *r1 = modelIV.fitTo(*mc_sigIV, RooFit::ExternalConstraints(modelIV_sys),RooFit::Save(), RooFit::Strategy(1), RooFit::Minimizer("Minuit2", "Migrad"));
+  RooAbsReal* nll_IV = modelIV.createNLL(*mc_sigIV, RooFit::ExternalConstraints(modelIV_sys));
+  RooMinuit(*nll_IV).migrad();
   //r1->Print();
 }
 
 int main(int argc, char** argv) {
     joint_fit_sys();
+    std::cout << argc << std::endl;
 }
