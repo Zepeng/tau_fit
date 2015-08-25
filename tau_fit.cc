@@ -320,8 +320,7 @@ void joint_fit_sys()
         // // The PDFs of shifting 1 sigma is built with Osc3++. 
         TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
                 error_term.c_str(), error_term.c_str());//Gaussian constraint.
-        //if(iter1 == sk1_errors.end()) 
-        tau_fit->factory(constraint_expr);
+        if(iter1 == sk1_errors.end()) tau_fit->factory(constraint_expr);
         TString constraint_name = TString::Format("%s_sys", error_term.c_str());
         parts_pdfII.add(*tau_fit->pdf(constraint_name));
       }
@@ -400,8 +399,7 @@ void joint_fit_sys()
         // // The PDFs of shifting 1 sigma is built with Osc3++. 
         TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
                 error_term.c_str(), error_term.c_str());//Gaussian constraint.
-        //if(iter1 == sk1_errors.end())
-        tau_fit->factory(constraint_expr);
+        if(iter1 == sk1_errors.end()) tau_fit->factory(constraint_expr);
         TString constraint_name = TString::Format("%s_sys", error_term.c_str());
         parts_pdfIII.add(*tau_fit->pdf(constraint_name));
       }
@@ -480,8 +478,7 @@ void joint_fit_sys()
         // // The PDFs of shifting 1 sigma is built with Osc3++. 
         TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
                 error_term.c_str(), error_term.c_str());//Gaussian constraint.
-        //if(iter1 == sk1_errors.end())
-        tau_fit->factory(constraint_expr);
+        if(iter1 == sk1_errors.end()) tau_fit->factory(constraint_expr);
         TString constraint_name = TString::Format("%s_sys", error_term.c_str());
         parts_pdfIV.add(*tau_fit->pdf(constraint_name));
       }
@@ -563,8 +560,8 @@ void joint_fit_sys()
                           RooFit::Import("SK3", *mc_sigIII),
                           RooFit::Import("SK4", *mc_sigIV));
   //RooFitResult *r1 = modelIV.fitTo(*mc_sigIV, RooFit::ExternalConstraints(modelIV_sys),RooFit::Save(), RooFit::Strategy(1), RooFit::Minimizer("Minuit2", "Migrad"));
-  RooAbsReal* nll_IV = modelIV.createNLL(*mc_sigIV, RooFit::ExternalConstraints(modelIV_sys));
-  RooMinuit(*nll_IV).migrad();
+  RooAbsReal* nll_all = simultenousPDF.createNLL(combinedData, RooFit::ExternalConstraints(modelIV_sys));
+  RooMinuit(*nll_all).migrad();
   //r1->Print();
 }
 
