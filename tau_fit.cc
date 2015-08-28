@@ -1,21 +1,10 @@
 #include <iostream>
-#include <sys/wait.h>
-#include <fstream>
-#include <cmath>
 #include <memory>
-#include <chrono>
-#include <unistd.h>
-#include <fcntl.h>
 #include <vector>
 #include <string>
 
 #include <tclap/CmdLine.h>
 
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-#include <TCanvas.h>
 #include <TString.h>
 #include <TH2.h>
 #include <TFile.h>
@@ -23,24 +12,19 @@
 #include <TKey.h>
 
 #include <RooWorkspace.h>
-#include <RooAbsPdf.h>
 #include <RooAbsReal.h>
 #include <RooRealVar.h>
-#include <RooCategory.h>
 #include <RooDataSet.h>
 #include <RooKeysPdf.h>
 #include <RooRandom.h>
-#include <RooBinning.h>
 #include <RooDataHist.h>
 #include <RooHistPdf.h>
 #include <RooNDKeysPdf.h>
 #include <RooAddPdf.h>
-#include <RooFitResult.h>
 #include <RooProdPdf.h>
 #include <RooGaussian.h>
 #include <RooMinuit.h>
 #include <RooAddition.h>
-#include <RooProfileLL.h>
 
 void joint_fit_sys()
 {
@@ -54,13 +38,6 @@ void joint_fit_sys()
   RooRealVar eventWeight   ("eventWeight", "Event Weight",                0.0, 10.0);
   RooArgSet  chainVars     (cosTheta, NN_output, NN_selected, eventWeight);
   RooArgList axisVariables (cosTheta, NN_output);
-
-  // Define Categories SK1-4, the 4 SK periods will be fit simultaneously.
-  RooCategory dataPeriod("dataPeriod","SK Run Period");
-  dataPeriod.defineType("SK1");
-  dataPeriod.defineType("SK2");
-  dataPeriod.defineType("SK3");
-  dataPeriod.defineType("SK4");
 
   TString objDir = "./data/" ;
   // Define variable used in the output tree
