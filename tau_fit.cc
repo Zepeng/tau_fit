@@ -38,8 +38,9 @@
 #include <RooFitResult.h>
 #include <RooProdPdf.h>
 #include <RooGaussian.h>
-#include <RooSimultaneous.h>
 #include <RooMinuit.h>
+#include <RooAddition.h>
+#include <RooProfileLL.h>
 
 void joint_fit_sys()
 {
@@ -532,13 +533,6 @@ void joint_fit_sys()
   //parts_pdfIV.add(modelIV);
   RooProdPdf modelIV_sys("modelIV with sys errors", "modelIV with sys errors", parts_pdfIV);
 
-  // Add 4 SK periods' PDF to the RooSimultaneous
-  RooSimultaneous simultenousPDF("simPDF" ,"Joint PDF", dataPeriod);
-  simultenousPDF.addPdf(modelI, "SK1");
-  simultenousPDF.addPdf(modelII, "SK2");
-  simultenousPDF.addPdf(modelIII, "SK3");
-  simultenousPDF.addPdf(modelIV, "SK4");
-  RooProdPdf all_sys("model sys", "all sys terms", RooArgSet(modelI_sys, modelII_sys,  modelIII_sys, modelIV_sys));
 
   // Create MC sample for study.
   RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, 2817);
@@ -553,16 +547,16 @@ void joint_fit_sys()
   RooDataSet  *mc_bkgIV = bkgPdfIV.generate(axisVariables, 3343);
   RooDataSet  *mc_sigIV = sigPdfIV.generate(axisVariables, 68);
   mc_sigIV->append(*mc_bkgIV);
-  RooDataSet combinedData("combinedData MC", "SKI-IV MC",
-                          axisVariables, RooFit::Index(dataPeriod),
-                          RooFit::Import("SK1", *mc_sigI),
-                          RooFit::Import("SK2", *mc_sigII),
-                          RooFit::Import("SK3", *mc_sigIII),
-                          RooFit::Import("SK4", *mc_sigIV));
-  //RooFitResult *r1 = modelIV.fitTo(*mc_sigIV, RooFit::ExternalConstraints(modelIV_sys),RooFit::Save(), RooFit::Strategy(1), RooFit::Minimizer("Minuit2", "Migrad"));
-  RooAbsReal* nll_all = simultenousPDF.createNLL(combinedData, RooFit::ExternalConstraints(modelIV_sys));
-  RooMinuit(*nll_all).migrad();
-  //r1->Print();
+  //Create likelihood function for each SK period.
+  RooAbsReal* nll_sk1 = modelI.createNLL(*mc_sigI, RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
+  RooAbsReal* nll_sk2 = modelII.createNLL(*mc_sigII, RooFit::ExternalConstraints(modelII_sys),RooFit::Extended(kTRUE));
+  RooAbsReal* nll_sk3 = modelIII.createNLL(*mc_sigIII, RooFit::ExternalConstraints(modelIII_sys),RooFit::Extended(kTRUE));
+  RooAbsReal* nll_sk4 = modelIV.createNLL(*mc_sigIV, RooFit::ExternalConstraints(modelIV_sys),RooFit::Extended(kTRUE));
+  
+  RooAddition nllCombined("nll_combined", "nll_combined", RooArgSet(*nll_sk1, *nll_sk2, *nll_sk3, *nll_sk4));
+  RooMinuit minit(nllCombined);
+  minit.migrad();
+  tau_fit->writeToFile("tau_fit.root");
 }
 
 int main(int argc, char** argv) {
