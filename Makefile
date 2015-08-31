@@ -2,7 +2,6 @@ SUFFIXES += .d
 
 # Which libraries to include
 USERLIBS= $(shell root-config --libs) -lRooFitCore -lRooFit -lFoam -lMinuit
-#USERLIBS= $(shell root-config --libs) -lRooFit
 
 USERLIBDIRS = $(root-config --libdir) 
 
