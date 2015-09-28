@@ -1,7 +1,8 @@
 #! /bin/bash
-
+# copied from https://github.com/IPNL-CMS/MttTools/blob/master/external/build-external.sh
 # YAML
 cd ..
+mkdir external
 curl -O https://yaml-cpp.googlecode.com/files/yaml-cpp-0.5.1.tar.gz
 tar xf yaml-cpp-0.5.1.tar.gz
 
