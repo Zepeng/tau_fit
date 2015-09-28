@@ -2,6 +2,8 @@
 This is a new fit method for tau analysis, published in 2013:  
 Evidence for the Appearance of Atmospheric Tau Neutrinos in Super-Kamiokande, Phys. Rev. Lett. 110, 181802  
 The basic idea is to fit the tau normalization in the paper with all systematic errors simultaneous with RooFit.
+The basic PDFs are built from simulation of e/mu events and tau events separately. Each systematic error has a
+set of PDFs in the fit, which is based on the Osc3++.  
 The framework of compiling RooFit code is copied from  
 https://github.com/IPNL-CMS/MttTools  
 Tau analysis fitting with RooFit  
