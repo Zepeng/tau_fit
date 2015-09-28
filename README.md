@@ -1,4 +1,6 @@
 # tau_fit
+This is a new fit method for tau analysis, published in 2013:  
+Phys. Rev. Lett. 110, 181802 – Published 2 May 2013  
 The framework of compiling RooFit code is copied from  
 https://github.com/IPNL-CMS/MttTools  
 Tau analysis fitting with RooFit  
