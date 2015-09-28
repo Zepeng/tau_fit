@@ -1,0 +1,17 @@
+Executable = $ENV(PWD)/tau_fit
+Arguments = $(Process) 
+
+universe   = vanilla
+getenv     = true
+initialdir = $ENV(PWD) 
+log = logs/taufit.log
+
+notification = never
+notify_user  = zl56@duke.edu
++Department  = Physics
+should_transfer_files = NO
+
+Output     = logs/taufit.$(Process).out
+Error      = logs/taufit.$(Process).err
+
+Queue 100
