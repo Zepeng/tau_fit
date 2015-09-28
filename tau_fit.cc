@@ -43,14 +43,16 @@ void joint_fit_sys(char* job)
   RooArgList axisVariables (cosTheta, NN_output);
 
   TString objDir = "./data/" ;
-  // Define variable used in the output tree
 
   // Open SKI ,SKII ,SKIII and SKIV files
   TFile *skIfile    = new TFile((objDir +"SK-I.root"    ).Data(),  "READ");
   TFile *skIIfile   = new TFile((objDir +"SK-II.root"   ).Data(),  "READ");
   TFile *skIIIfile  = new TFile((objDir +"SK-III.root"  ).Data(),  "READ");
   TFile *skIVfile   = new TFile((objDir +"SK-IV.root"   ).Data(),  "READ");
+
   // Grab the trees and Histograms we need.
+  // Data chain could be used in building KeysPdf, but is not used in this
+  // fitting now.
   //SK1
   TTree *SKIChain              = (TTree*)skIfile->Get("dataHistoTMVAOutputTree");
   //TTree *SKIBkgChain           = (TTree*)skIfile->Get("bkgHistoTMVAOutputTree");
@@ -190,7 +192,7 @@ void joint_fit_sys(char* job)
   coeff_listIV.add(expbkgIV);
   coeff_listIV.add(tau_normIV);
 
-  //MC study - statistical only
+  //SK1-4 MC study - statistical only
   if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
@@ -224,8 +226,10 @@ void joint_fit_sys(char* job)
         RooAbsReal* nll_sk2 = modelII_stat.createNLL(*mc_sigII, RooFit::Extended(kTRUE));
         RooAbsReal* nll_sk3 = modelIII_stat.createNLL(*mc_sigIII, RooFit::Extended(kTRUE));
         RooAbsReal* nll_sk4 = modelIV_stat.createNLL(*mc_sigIV, RooFit::Extended(kTRUE));
+        // Simultaneous fit of SK1-4 with combined likelihood.
         RooAddition nllCombined("nll_combined", "nll_combined", RooArgSet(*nll_sk1, *nll_sk2, *nll_sk3, *nll_sk4));
-        
+       
+        //Mininize the likelihood for SK1-4 individually and simultaneously.
         RooMinuit minit1(*nll_sk1);
         minit1.migrad();
         mc_xsecI->Fill(cc_nutau_xsec.getVal());
@@ -286,7 +290,7 @@ void joint_fit_sys(char* job)
  
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   //and negative parts.
-  //positive
+  //SK1 positive
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posI;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posI;
   for(unsigned int i = 0; i < sk1_errors.size() ; i++) 
@@ -306,7 +310,7 @@ void joint_fit_sys(char* job)
         coeff_listI.add(*coeffs_posI[i]);
     }
   }
-  //negative
+  //SK1 negative
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negI;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negI;
   for(unsigned int i = 0; i < sk1_errors.size() ; i++) 
@@ -327,9 +331,8 @@ void joint_fit_sys(char* job)
     }
   }
   //stitch the parts of PDF to the final PDF.
-  RooAddPdf modelI ("modelI",  "signal+bkgd SKI",  pdf_listI, coeff_listI );
-  //parts_pdfI.add(modelI);
-  RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);
+  RooAddPdf modelI ("modelI",  "signal+bkgd SKI",  pdf_listI, coeff_listI );//base PDFs + PDFs of sys errors
+  RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);//Gaussian constraint of sys errors
   
   // Read the file of histograms for sk2 systematic errors.
   TFile* fijs_sk2 = new TFile("./sys_pdf/error.sk2.root", "READ");
@@ -338,7 +341,6 @@ void joint_fit_sys(char* job)
   // create Gaussian constraint for each systematic error.
   std::vector<std::string> sk2_errors;
   TIter next2(fijs_sk2->GetListOfKeys());
-  //TKey* key;
   RooArgSet parts_pdfII("parts_pdfII");
   while ((key = (TKey*)next2())) {
       std::string fij_name = key->GetName();
@@ -364,7 +366,7 @@ void joint_fit_sys(char* job)
  
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   //and negative parts.
-  //positive
+  //SKII positive
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posII;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posII;
   for(unsigned int i = 0; i < sk2_errors.size() ; i++) 
@@ -384,7 +386,7 @@ void joint_fit_sys(char* job)
         coeff_listII.add(*coeffs_posII[i]);
     }
   }
-  //negative
+  //SKII negative
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negII;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negII;
   for(unsigned int i = 0; i < sk2_errors.size() ; i++) 
@@ -407,9 +409,9 @@ void joint_fit_sys(char* job)
   //stitch the parts of PDF to the final PDF.
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   RooAddPdf modelII ("modelII",  "signal+bkgd SKII",  pdf_listII, coeff_listII );
-  //parts_pdfII.add(modelII);
   RooProdPdf modelII_sys("modelII with sys errors", "modelII with sys errors", parts_pdfII);
-  
+ 
+  //SK2 MC study with systematic errors. Turned off by default.
   if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
@@ -440,7 +442,6 @@ void joint_fit_sys(char* job)
   // create Gaussian constraint for each systematic error.
   std::vector<std::string> sk3_errors;
   TIter next3(fijs_sk3->GetListOfKeys());
-  //TKey* key;
   RooArgSet parts_pdfIII("parts_pdfIII");
   while ((key = (TKey*)next3())) {
       std::string fij_name = key->GetName();
@@ -466,7 +467,7 @@ void joint_fit_sys(char* job)
  
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   //and negative parts.
-  //positive
+  //SKIII positive
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posIII;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posIII;
   for(unsigned int i = 0; i < sk3_errors.size() ; i++) 
@@ -486,7 +487,7 @@ void joint_fit_sys(char* job)
         coeff_listIII.add(*coeffs_posIII[i]);
     }
   }
-  //negative
+  //SKIII negative
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negIII;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negIII;
   for(unsigned int i = 0; i < sk3_errors.size() ; i++) 
@@ -509,9 +510,9 @@ void joint_fit_sys(char* job)
   //stitch the parts of PDF to the final PDF.
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   RooAddPdf modelIII ("modelIII",  "signal+bkgd SKIII",  pdf_listIII, coeff_listIII );
-  //parts_pdfIII.add(modelIII);
   RooProdPdf modelIII_sys("modelIII with sys errors", "modelIII with sys errors", parts_pdfIII);
-  
+ 
+  //SK3 MC study with systematic errors. Turned off by default.
   if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
@@ -541,7 +542,6 @@ void joint_fit_sys(char* job)
   // create Gaussian constraint for each systematic error.
   std::vector<std::string> sk4_errors;
   TIter next4(fijs_sk4->GetListOfKeys());
-  //TKey* key;
   RooArgSet parts_pdfIV("parts_pdfIV");
   while ((key = (TKey*)next4())) {
       std::string fij_name = key->GetName();
@@ -567,7 +567,7 @@ void joint_fit_sys(char* job)
  
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   //and negative parts.
-  //positive
+  //SKIV positive
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_posIV;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_posIV;
   for(unsigned int i = 0; i < sk4_errors.size() ; i++) 
@@ -587,7 +587,7 @@ void joint_fit_sys(char* job)
         coeff_listIV.add(*coeffs_posIV[i]);
     }
   }
-  //negative
+  //SKIV negative
   std::map<int, std::shared_ptr<RooHistPdf>> hist_pdfs_negIV;
   std::map<int, std::shared_ptr<RooFormulaVar>> coeffs_negIV;
   for(unsigned int i = 0; i < sk4_errors.size() ; i++) 
@@ -610,9 +610,9 @@ void joint_fit_sys(char* job)
   //stitch the parts of PDF to the final PDF.
   //Create RooHistPDF for each systematic error. Divide each term to positive and
   RooAddPdf modelIV ("modelIV",  "signal+bkgd SKIV",  pdf_listIV, coeff_listIV );
-  //parts_pdfIV.add(modelIV);
   RooProdPdf modelIV_sys("modelIV with sys errors", "modelIV with sys errors", parts_pdfIV);
 
+  //SK4 MC study with systematic errors. Turned off by default.
   if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
@@ -635,6 +635,9 @@ void joint_fit_sys(char* job)
     mc_study->Write();
   }
 
+  //SK1-4 MC study with systematic errors. Turned off by default. Because a single fit takes 20mins, this part
+  //need to be processed in parallel. The code has been written for job submission in condor. A paramter is read
+  //from the main function, and attached to the output file name.
   if(kTRUE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
@@ -675,6 +678,6 @@ void joint_fit_sys(char* job)
 }
 
 int main(int argc, char** argv) {
-    std::cout << argc << argv[1] << std::endl;
-    joint_fit_sys(argv[1]);
+    std::cout << argc << argv[1] << std::endl;// Read paramters from command line.
+    joint_fit_sys(argv[1]);// The first paramter is passed to the function to specify the file name.
 }
