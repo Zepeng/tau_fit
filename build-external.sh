@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # YAML
-
+cd ..
 curl -O https://yaml-cpp.googlecode.com/files/yaml-cpp-0.5.1.tar.gz
 tar xf yaml-cpp-0.5.1.tar.gz
 
