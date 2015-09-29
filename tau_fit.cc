@@ -120,7 +120,7 @@ void joint_fit_sys(char* job)
 
   // Set the expected number of signal/background events (these are constants)
   // These are not normalized by any fraction (signal, background or DIS).
-  RooRealVar cc_nutau_xsec("cc_nutau_xsec", "cc_nutau_xsec", -3, 3);
+  RooRealVar cc_nutau_xsec("cc_nutau_xsec", "cc_nutau_xsec", 0, 3);
   //SK1
   RooRealVar expbkgI("expbkgI", "expbkgI",  bkgHisto2DZenithSKI->Integral());
   RooRealVar expsigI("expsigI", "expsigI",  tauHisto2DZenithSKI->Integral());
@@ -648,7 +648,7 @@ void joint_fit_sys(char* job)
     TH1F* mc_xsec = new TH1F("xsec","xsec",40,0,4);
     TRandom3* r3 = new TRandom3();
     r3->SetSeed(0);
-    for(int i = 0; i < 10; i++)// Create MC sample for study.
+    for(int i = 0; i < 5; i++)// Create MC sample for study.
     {
         RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(2817)));
         RooDataSet  *mc_sigI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(56)));
