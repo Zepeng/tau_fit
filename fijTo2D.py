@@ -2,7 +2,7 @@ import ROOT
 #binning of fijs 15 bins equally from -1 to 1 in Cos Zenith Angle
 # 15 bins equally from -0.1 to 1.1 in tau NN output.
 def convert(skx, sample, error_name):
-    tfile = ROOT.TFile('fij.sk' + str(skx) + '.' + sample + '.root','READ')
+    tfile = ROOT.TFile('./data/fij.sk' + str(skx) + '.' + sample + '.root','READ')
     fij_1D = tfile.Get(error_name + '_fij')
     fijs = []
     for i in range(15*15):
@@ -10,7 +10,7 @@ def convert(skx, sample, error_name):
     return fijs
 
 def get_errors(skx, sample):
-    tfile = ROOT.TFile('fij.sk' + str(skx) + '.' + sample + '.root','READ')
+    tfile = ROOT.TFile('./data/fij.sk' + str(skx) + '.' + sample + '.root','READ')
     keys = tfile.GetListOfKeys()
     ErrorNames = []
     for key in keys:
@@ -24,10 +24,9 @@ def write_root(skx, sample):
     print errors
     error_file = ROOT.TFile('./sys_pdf/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
     sk_type = ['I', 'II','III','IV']
-    event_file = ROOT.TFile('SK-' + sk_type[skx - 1] + '.root','READ')
+    event_file = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
     dict_sample = {'fcmc':'bkg','tau':'tau'}
     events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
-    th2_test = ROOT.TH2F('error_test', 'error_test', 15, -1.0, 1.0, 15, -0.1, 1.1)
     th1 = ROOT.TH1F('th1', 'th1', 230, 0,230)
     for i in range(225):
         th1.SetBinContent(i+1,0)
@@ -43,17 +42,52 @@ def write_root(skx, sample):
         for i in range(15):
             for j in range(15):
                 if fijs[15*i + j] > 0:
-                    #th2_test.SetBinContent(i+1, j+1, fijs[15*i + j] )#+ th2_test.GetBinContent(i+1, j+1))
                     th2_pos.SetBinContent(i+1, j+1, fijs[15*i + j]*events_2D.GetBinContent(i+1, j+1) )
                 else:
-                    #th2_test.SetBinContent(i+1, j+2, -fijs[15*i + j] + th2_test.GetBinContent(i+1, j+1))
                     th2_neg.SetBinContent(i+1, j+1, -fijs[15*i + j]*events_2D.GetBinContent(i+1, j+1) )
         print error, th2_pos.GetMaximum()
         print error, th2_neg.GetMaximum()
         th2_pos.Write()
         th2_neg.Write()
-    #th1.Write()
-    #th2_test.Write()
+    #Calculate the histogram of 1 sigma change of oscillation paramters
+    #S23
+    del_s23 = ROOT.TFile('./data/osc/s23-1s/SK-'+ sk_type[skx - 1] + '.root','READ' )
+    central = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
+    hist_s23m = del_s23.Get(dict_sample[sample] + 'HistoZenith2D')
+    hist_ctr = central.Get(dict_sample[sample] + 'HistoZenith2D')
+    s23_pos = ROOT.TH2F('s23_pos','s23_pos', 15, -1.0, 1.0, 15, -0.1, 1.1 )
+    s23_pos.SetDirectory(error_file)
+    s23_neg = ROOT.TH2F('s23_neg', 's23_neg', 15, -1.0, 1.0, 15, -0.1, 1.1)
+    s23_neg.SetDirectory(error_file)
+    error_file.cd()
+    for i in range(15):
+        for j in range(15):
+            if( hist_ctr.GetBinContent(i+1,j+1) - hist_s23m.GetBinContent(i+1,j+1)) > 0:
+                s23_pos.SetBinContent(i+1, j+1, hist_ctr.GetBinContent(i+1,j+1) - hist_s23m.GetBinContent(i+1,j+1) )
+            else:
+                s23_neg.SetBinContent(i+1, j+1, -hist_ctr.GetBinContent(i+1,j+1) + hist_s23m.GetBinContent(i+1,j+1) )
+    s23_pos.Write()
+    s23_neg.Write()
+    #M23
+    pls_m23 = ROOT.TFile('./data/osc/dm2+1s/SK-'+ sk_type[skx - 1] + '.root','READ' )
+    min_m23 = ROOT.TFile('./data/osc/dm2-1s/SK-'+ sk_type[skx - 1] + '.root','READ' )
+    hist_m23p = pls_m23.Get(dict_sample[sample] + 'HistoZenith2D')
+    hist_m23m = min_m23.Get(dict_sample[sample] + 'HistoZenith2D')
+    m23_pos = ROOT.TH2F('m23_pos','m23_pos', 15, -1.0, 1.0, 15, -0.1, 1.1 )
+    m23_pos.SetDirectory(error_file)
+    m23_neg = ROOT.TH2F('m23_neg', 'm23_neg', 15, -1.0, 1.0, 15, -0.1, 1.1)
+    m23_neg.SetDirectory(error_file)
+    error_file.cd()
+    for i in range(15):
+        for j in range(15):
+            if( hist_m23p.GetBinContent(i+1,j+1) - hist_m23m.GetBinContent(i+1,j+1)) > 0:
+                m23_pos.SetBinContent(i+1, j+1, hist_m23p.GetBinContent(i+1,j+1) - hist_m23m.GetBinContent(i+1,j+1) )
+            else:
+                m23_neg.SetBinContent(i+1, j+1, -hist_m23p.GetBinContent(i+1,j+1) + hist_m23m.GetBinContent(i+1,j+1) )
+    m23_pos.Write()
+    m23_neg.Write()
+
+
     error_file.Close()
 
 if __name__ == '__main__':
