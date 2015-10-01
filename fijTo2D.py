@@ -49,44 +49,6 @@ def write_root(skx, sample):
         print error, th2_neg.GetMaximum()
         th2_pos.Write()
         th2_neg.Write()
-    #Calculate the histogram of 1 sigma change of oscillation paramters
-    #S23
-    del_s23 = ROOT.TFile('./data/osc/s23-1s/SK-'+ sk_type[skx - 1] + '.root','READ' )
-    central = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
-    hist_s23m = del_s23.Get(dict_sample[sample] + 'HistoZenith2D')
-    hist_ctr = central.Get(dict_sample[sample] + 'HistoZenith2D')
-    s23_pos = ROOT.TH2F('s23_pos','s23_pos', 15, -1.0, 1.0, 15, -0.1, 1.1 )
-    s23_pos.SetDirectory(error_file)
-    s23_neg = ROOT.TH2F('s23_neg', 's23_neg', 15, -1.0, 1.0, 15, -0.1, 1.1)
-    s23_neg.SetDirectory(error_file)
-    error_file.cd()
-    for i in range(15):
-        for j in range(15):
-            if( hist_ctr.GetBinContent(i+1,j+1) - hist_s23m.GetBinContent(i+1,j+1)) > 0:
-                s23_pos.SetBinContent(i+1, j+1, hist_ctr.GetBinContent(i+1,j+1) - hist_s23m.GetBinContent(i+1,j+1) )
-            else:
-                s23_neg.SetBinContent(i+1, j+1, -hist_ctr.GetBinContent(i+1,j+1) + hist_s23m.GetBinContent(i+1,j+1) )
-    s23_pos.Write()
-    s23_neg.Write()
-    #M23
-    pls_m23 = ROOT.TFile('./data/osc/dm2+1s/SK-'+ sk_type[skx - 1] + '.root','READ' )
-    min_m23 = ROOT.TFile('./data/osc/dm2-1s/SK-'+ sk_type[skx - 1] + '.root','READ' )
-    hist_m23p = pls_m23.Get(dict_sample[sample] + 'HistoZenith2D')
-    hist_m23m = min_m23.Get(dict_sample[sample] + 'HistoZenith2D')
-    m23_pos = ROOT.TH2F('m23_pos','m23_pos', 15, -1.0, 1.0, 15, -0.1, 1.1 )
-    m23_pos.SetDirectory(error_file)
-    m23_neg = ROOT.TH2F('m23_neg', 'm23_neg', 15, -1.0, 1.0, 15, -0.1, 1.1)
-    m23_neg.SetDirectory(error_file)
-    error_file.cd()
-    for i in range(15):
-        for j in range(15):
-            if( hist_m23p.GetBinContent(i+1,j+1) - hist_m23m.GetBinContent(i+1,j+1)) > 0:
-                m23_pos.SetBinContent(i+1, j+1, hist_m23p.GetBinContent(i+1,j+1) - hist_m23m.GetBinContent(i+1,j+1) )
-            else:
-                m23_neg.SetBinContent(i+1, j+1, -hist_m23p.GetBinContent(i+1,j+1) + hist_m23m.GetBinContent(i+1,j+1) )
-    m23_pos.Write()
-    m23_neg.Write()
-
 
     error_file.Close()
 
