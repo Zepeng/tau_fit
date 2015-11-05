@@ -24,7 +24,7 @@ def write_root(skx, sample):
     print errors
     error_file = ROOT.TFile('./sys_pdf/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
     sk_type = ['I', 'II','III','IV']
-    event_file = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
+    event_file = ROOT.TFile('./objects_extra/SK-' + sk_type[skx - 1] + '.root','READ')
     dict_sample = {'fcmc':'bkg','tau':'tau'}
     events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
     th1 = ROOT.TH1F('th1', 'th1', 230, 0,230)
@@ -53,6 +53,6 @@ def write_root(skx, sample):
     error_file.Close()
 
 if __name__ == '__main__':
-    for i in range(1,5):
+    for i in range(4,5):
         write_root(i, 'fcmc')
         write_root(i,'tau')
