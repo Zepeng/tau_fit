@@ -121,7 +121,7 @@ void joint_fit_sys(char* job)
 
   // Set the expected number of signal/background events (these are constants)
   // These are not normalized by any fraction (signal, background or DIS).
-  RooRealVar cc_nutau_xsec("cc_nutau_xsec", "cc_nutau_xsec",  1, 0, 3);
+  RooRealVar cc_nutau_xsec("cc_nutau_xsec", "cc_nutau_xsec",  1, -1, 3);
   //SK1
   RooRealVar expbkgI("expbkgI", "expbkgI",  bkgHisto2DZenithSKI->Integral());
   RooRealVar expsigI("expsigI", "expsigI",  tauHisto2DZenithSKI->Integral());
@@ -649,23 +649,26 @@ void joint_fit_sys(char* job)
     root_file += job;
     root_file += ".root";
     TFile* mc_study = new TFile(root_file,"recreate");
-    TH1F* mc_xsec = new TH1F("xsec","xsec",40,0,4);
+    //TH1F* mc_xsec = new TH1F("xsec","xsec",100,0,2.5);
+    TTree* mc_xsec = new TTree("mc_xsec","mc_xsec");
+    float xsec;
+    mc_xsec->Branch("xsec", &xsec, "xsec/F");
     TRandom3* r3 = new TRandom3();
     r3->SetSeed(0);
-    for(int i = 0; i < 2; i++)// Create MC sample for study.
+    for(int i = 0; i < 10; i++)// Create MC sample for study.
     {
         cc_nutau_xsec.setVal(1.0);
-        RooDataSet  *mc_sigI = modelI.generate(axisVariables, TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKI->Integral()+tauHisto2DZenithSKI->Integral())));
-        RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*0.389)));
+        RooDataSet  *mc_sigI = modelI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.2*bkgHisto2DZenithSKI->Integral()+tauHisto2DZenithSKI->Integral())));
+        //RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*0.120)));
         //mc_sigI->append(*mc_tauI);
-        RooDataSet  *mc_sigII = modelII.generate(axisVariables, TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKII->Integral()+tauHisto2DZenithSKII->Integral())));
-        RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*0.389)));
+        RooDataSet  *mc_sigII = modelII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.2*bkgHisto2DZenithSKII->Integral()+tauHisto2DZenithSKII->Integral())));
+        //RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*0.120)));
         //mc_sigII->append(*mc_tauII);
-        RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIII->Integral()+tauHisto2DZenithSKIII->Integral())));
-        RooDataSet  *mc_tauIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIII->Integral()*0.389)));
+        RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.2*bkgHisto2DZenithSKIII->Integral()+tauHisto2DZenithSKIII->Integral())));
+        //RooDataSet  *mc_tauIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIII->Integral()*0.120)));
         //mc_sigIII->append(*mc_tauIII);
-        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIV->Integral()+tauHisto2DZenithSKIV->Integral())));
-        RooDataSet  *mc_tauIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIV->Integral()*0.389)));//89 for adding extra data.
+        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.2*bkgHisto2DZenithSKIV->Integral()+tauHisto2DZenithSKIV->Integral())));
+        //RooDataSet  *mc_tauIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIV->Integral()*0.120)));//89 for adding extra data.
         //mc_sigIV->append(*mc_tauIV);
         //Create likelihood function for each SK period.
         RooAbsReal* nll_sk1 = modelI.createNLL(*mc_sigI,  RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
@@ -676,9 +679,12 @@ void joint_fit_sys(char* job)
         RooMinuit minit(nllCombined);
   
         minit.migrad();
-        mc_xsec->Fill(cc_nutau_xsec.getVal());
+        //mc_xsec->Fill(cc_nutau_xsec.getVal());
+        xsec = cc_nutau_xsec.getVal();
+        mc_xsec->Fill();
     }
-    mc_study->Write();
+    mc_xsec->Write();
+    mc_study->Close();
   }
 
   //Fit the data against PDFs.
