@@ -1,4 +1,4 @@
-Executable = $ENV(PWD)/tau_fit
+Executable = $ENV(PWD)/tau_mc
 Arguments = $(Process) 
 
 universe   = vanilla
