@@ -30,7 +30,7 @@ OBJS =  $(patsubst %.cc,objs/%.o,$(SRCS))
 
 link = echo "Linking $@"; $(LD) $(LDFLAGS) $< $(LIBS) -o $@
 
-all: tau_fit 
+all: tau_fit tau_mc 
 
 # Make the executable
 .SECONDEXPANSION:
@@ -40,6 +40,8 @@ OBJ = objs/$(@).o #objs/libUtils.a
 tau_fit : $$(OBJ)
 	@$(link)
 
+tau_mc : $$(OBJ)
+	@$(link)
 
 # Make the objects
 objs/%.o: %.cc
