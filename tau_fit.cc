@@ -661,7 +661,7 @@ void joint_fit_sys(char* job)
         RooDataSet  *mc_sigI = modelI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKI->Integral()+1.0*tauHisto2DZenithSKI->Integral())));
         RooDataSet  *mc_sigII = modelII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKII->Integral()+1.0*tauHisto2DZenithSKII->Integral())));
         RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIII->Integral()+1.0*tauHisto2DZenithSKIII->Integral())));
-        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIV->Integral()+1.0*tauHisto2DZenithSKIV->Integral())));
+        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIV->Integral()+1.0*tauHisto2DZenithSKIV->Integral())));//the factor of 1.02 is added because of the systematic errors. More events are in the PDFs with systematic errors.
 /*        RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*0.180)));
         mc_sigI->append(*mc_tauI);
         RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*0.180)));
