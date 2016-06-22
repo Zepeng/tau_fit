@@ -197,30 +197,39 @@ void joint_fit_sys(char* job)
   if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
-    TFile* mc_study = new TFile("mc_tau.root","recreate");
-    TH1F* mc_xsecI   = new TH1F("xsec1","xsec",40,0,4);
+    TString root_file = "./mc_stat/mc_tau_" ;
+    root_file += job;
+    root_file += ".root";
+    TFile* mc_study = new TFile(root_file,"recreate");
+    //TH1F* mc_xsec = new TH1F("xsec","xsec",100,0,2.5);
+    TTree* mc_xsec = new TTree("mc_xsec","mc_xsec");
+    float xsec;
+    mc_xsec->Branch("xsec", &xsec, "xsec/F");
+    TRandom3* r3 = new TRandom3();
+    r3->SetSeed(0);
+    /*TH1F* mc_xsecI   = new TH1F("xsec1","xsec",40,0,4);
     TH1F* mc_xsecII  = new TH1F("xsec2","xsec",40,0,4);
     TH1F* mc_xsecIII = new TH1F("xsec3","xsec",40,0,4);
     TH1F* mc_xsecIV  = new TH1F("xsec4","xsec",40,0,4);
-    TH1F* mc_xsec_com  = new TH1F("xsec_com","xsec",40,0,4);
-    TRandom3* r3 = new TRandom3();
+    */
+    //TH1F* mc_xsec_com  = new TH1F("xsec_com","xsec",40,0,4);
     RooAddPdf modelI_stat ("modelI",  "signal+bkgd SKI",  pdf_listI, coeff_listI );
     RooAddPdf modelII_stat ("modelII",  "signal+bkgd SKII",  pdf_listII, coeff_listII );
     RooAddPdf modelIII_stat ("modelIII",  "signal+bkgd SKIII",  pdf_listIII, coeff_listIII );
     RooAddPdf modelIV_stat ("modelIV",  "signal+bkgd SKIV",  pdf_listIV, coeff_listIV );
-    for(int i = 0; i < 1000; i++)// Create MC sample for study.
+    for(int i = 0; i < 100; i++)// Create MC sample for study.
     {
-        RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(2817)));
-        RooDataSet  *mc_sigI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(56)));
+        RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKI->Integral())));
+        RooDataSet  *mc_sigI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKI->Integral())));
         mc_sigI->append(*mc_bkgI);
-        RooDataSet  *mc_bkgII = bkgPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(1496)));
-        RooDataSet  *mc_sigII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(32)));
+        RooDataSet  *mc_bkgII = bkgPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKII->Integral())));
+        RooDataSet  *mc_sigII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKII->Integral())));
         mc_sigII->append(*mc_bkgII);
-        RooDataSet  *mc_bkgIII = bkgPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(988)));
-        RooDataSet  *mc_sigIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(19)));
+        RooDataSet  *mc_bkgIII = bkgPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIII->Integral())));
+        RooDataSet  *mc_sigIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKIII->Integral())));
         mc_sigIII->append(*mc_bkgIII);
-        RooDataSet  *mc_bkgIV = bkgPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(3343)));
-        RooDataSet  *mc_sigIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(68)));
+        RooDataSet  *mc_bkgIV = bkgPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIV->Integral())));
+        RooDataSet  *mc_sigIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKIV->Integral())));
         mc_sigIV->append(*mc_bkgIV);
         //Create likelihood function for each SK period.
         RooAbsReal* nll_sk1 = modelI_stat.createNLL(*mc_sigI,  RooFit::Extended(kTRUE));
@@ -231,7 +240,7 @@ void joint_fit_sys(char* job)
         RooAddition nllCombined("nll_combined", "nll_combined", RooArgSet(*nll_sk1, *nll_sk2, *nll_sk3, *nll_sk4));
        
         //Mininize the likelihood for SK1-4 individually and simultaneously.
-        RooMinuit minit1(*nll_sk1);
+        /*RooMinuit minit1(*nll_sk1);
         minit1.migrad();
         mc_xsecI->Fill(cc_nutau_xsec.getVal());
         RooMinuit minit2(*nll_sk2);
@@ -243,9 +252,12 @@ void joint_fit_sys(char* job)
         RooMinuit minit4(*nll_sk4);
         minit4.migrad();
         mc_xsecIV->Fill(cc_nutau_xsec.getVal());
-        RooMinuit minit_com(nllCombined);
+        */RooMinuit minit_com(nllCombined);
         minit_com.migrad();
-        mc_xsec_com->Fill(cc_nutau_xsec.getVal());
+        //mc_xsec_com->Fill(cc_nutau_xsec.getVal());
+        xsec = cc_nutau_xsec.getVal();
+        mc_xsec->Fill();
+
     }
     mc_study->Write();
     return;
@@ -337,7 +349,7 @@ void joint_fit_sys(char* job)
   RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);//Gaussian constraint of sys errors
   
   // Read the file of histograms for sk2 systematic errors.
-  TFile* fijs_sk2 = new TFile("./sys_pdf/error.sk2.root", "READ");
+  TFile* fijs_sk2 = new TFile("./sys_pdf_0.05/error.sk2.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -438,7 +450,7 @@ void joint_fit_sys(char* job)
   }
   
   // Read the file of histograms for sk3 systematic errors.
-  TFile* fijs_sk3 = new TFile("./sys_pdf/error.sk3.root", "READ");
+  TFile* fijs_sk3 = new TFile("./sys_pdf_0.05/error.sk3.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -537,7 +549,7 @@ void joint_fit_sys(char* job)
   }
 
   // Read the file of histograms for sk4 systematic errors.
-  TFile* fijs_sk4 = new TFile("./sys_pdf/error.sk4.root", "READ");
+  TFile* fijs_sk4 = new TFile("./sys_pdf_0.05/error.sk4.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -642,10 +654,10 @@ void joint_fit_sys(char* job)
   //SK1-4 MC study with systematic errors. Turned off by default. Because a single fit takes 20mins, this part
   //need to be processed in parallel. The code has been written for job submission in condor. A paramter is read
   //from the main function, and attached to the output file name.
-  if(kTRUE)
+  if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
-    TString root_file = "./mc_study/mc_tau_" ;
+    TString root_file = "./mc_0.03/mc_tau_" ;
     root_file += job;
     root_file += ".root";
     TFile* mc_study = new TFile(root_file,"recreate");
@@ -655,21 +667,13 @@ void joint_fit_sys(char* job)
     mc_xsec->Branch("xsec", &xsec, "xsec/F");
     TRandom3* r3 = new TRandom3();
     r3->SetSeed(0);
-    for(int i = 0; i <10; i++)// Create MC sample for study.
+    for(int i = 0; i <5; i++)// Create MC sample for study.
     {
         cc_nutau_xsec.setVal(1.0);
         RooDataSet  *mc_sigI = modelI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKI->Integral()+1.0*tauHisto2DZenithSKI->Integral())));
         RooDataSet  *mc_sigII = modelII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKII->Integral()+1.0*tauHisto2DZenithSKII->Integral())));
         RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIII->Integral()+1.0*tauHisto2DZenithSKIII->Integral())));
         RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIV->Integral()+1.0*tauHisto2DZenithSKIV->Integral())));//the factor of 1.02 is added because of the systematic errors. More events are in the PDFs with systematic errors.
-/*        RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*0.180)));
-        mc_sigI->append(*mc_tauI);
-        RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*0.180)));
-        mc_sigII->append(*mc_tauII);
-        RooDataSet  *mc_tauIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIII->Integral()*0.180)));
-        mc_sigIII->append(*mc_tauIII);
-        RooDataSet  *mc_tauIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIV->Integral()*0.180)));//89 for adding extra data.
-        mc_sigIV->append(*mc_tauIV);*/
         //Create likelihood function for each SK period.
         RooAbsReal* nll_sk1 = modelI.createNLL(*mc_sigI,  RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
         RooAbsReal* nll_sk2 = modelII.createNLL(*mc_sigII,  RooFit::ExternalConstraints(modelII_sys),RooFit::Extended(kTRUE));

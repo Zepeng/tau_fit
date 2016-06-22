@@ -58,6 +58,7 @@ def plot_max():
     th2d.GetXaxis().SetTitle('max bin of 2D fijs')
     th2d.GetYaxis().SetTitle('sum of 2D fijs')
     c1.Print('fij_max_sum.png','png')
+
 if __name__ == '__main__':
     for skx in range(1,5):
         get_sys_count(skx)

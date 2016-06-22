@@ -14,4 +14,4 @@ should_transfer_files = NO
 Output     = logs/taufit.$(Process).out
 Error      = logs/taufit.$(Process).err
 
-Queue 600
+Queue 4000

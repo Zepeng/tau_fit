@@ -2,7 +2,7 @@ import ROOT
 #binning of fijs 15 bins equally from -1 to 1 in Cos Zenith Angle
 # 15 bins equally from -0.1 to 1.1 in tau NN output.
 def convert(skx, sample, error_name):
-    tfile = ROOT.TFile('./data/fij.sk' + str(skx) + '.' + sample + '.root','READ')
+    tfile = ROOT.TFile('./sk' + str(skx) + '.' + sample + '.root','READ')
     fij_1D = tfile.Get(error_name + '_fij')
     fijs = []
     for i in range(15*15):
@@ -10,7 +10,7 @@ def convert(skx, sample, error_name):
     return fijs
 
 def get_errors(skx, sample):
-    tfile = ROOT.TFile('./data/fij.sk' + str(skx) + '.' + sample + '.root','READ')
+    tfile = ROOT.TFile('./sk' + str(skx) + '.' + sample + '.root','READ')
     keys = tfile.GetListOfKeys()
     ErrorNames = []
     for key in keys:
@@ -29,7 +29,7 @@ def write_root(skx, sample):
     print errors
     error_file = ROOT.TFile('./sys_pdf/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
     sk_type = ['I', 'II','III','IV']
-    event_file = ROOT.TFile('./objects/SK-' + sk_type[skx - 1] + '.root','READ')
+    event_file = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
     dict_sample = {'fcmc':'bkg','tau':'tau'}
     events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
     th1 = ROOT.TH1F('th1', 'th1', 230, 0,230)
@@ -37,7 +37,7 @@ def write_root(skx, sample):
         th1.SetBinContent(i+1,0)
     for error in errors:
         fijs = convert(skx, sample, error)
-        if get_max(skx, sample, error) < 0.01:
+        if get_max(skx, sample, error) < 0.02 or 't2k' in error : #and 'pid_multi_ring' not in error and 'polfit_1_ring' not in error: #and get_max(skx, 'tau', error) < 0.2:
             continue
         for m in range(len(fijs)):
             th1.SetBinContent(m+1, fijs[m] + th1.GetBinContent(m+1))
@@ -62,19 +62,19 @@ def write_root(skx, sample):
 def mc_pdf(skx, sample):
     errors = get_errors(skx, sample)
     print errors
-    error_file = ROOT.TFile('./mc_pdf/mc.sk' + str(skx) + '.' + sample + '.root','RECREATE')
+    error_file = ROOT.TFile('./mc_pdf/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
     sk_type = ['I', 'II','III','IV']
-    event_file = ROOT.TFile('./objects/SK-' + sk_type[skx - 1] + '.root','READ')
+    event_file = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
     dict_sample = {'fcmc':'bkg','tau':'tau'}
     events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
     th1 = ROOT.TH1F('th1', 'th1', 230, 0,230)
     for i in range(225):
         th1.SetBinContent(i+1,0)
     for error in errors:
-        if error not in ['up_down_ratio', 'horizontal_vertical_ratio', 'K_pi_ratio', 'NC_CC_ratio', 'up_down_energy_calibration']:
-            continue
+        #if error not in ['up_down_ratio', 'horizontal_vertical_ratio', 'K_pi_ratio', 'NC_CC_ratio', 'up_down_energy_calibration']:
+        #    continue
         fijs = convert(skx, sample, error)
-        if get_max(skx, sample, error) < 0.01:
+        if get_max(skx, sample, error) < 0.02:
             continue
         for m in range(len(fijs)):
             th1.SetBinContent(m+1, fijs[m] + th1.GetBinContent(m+1))
@@ -91,5 +91,5 @@ def mc_pdf(skx, sample):
 
 if __name__ == '__main__':
     for i in range(1,5):
-        mc_pdf(i, 'fcmc')
-        mc_pdf(i,'tau')
+        write_root(i, 'fcmc')
+        write_root(i,'tau')
