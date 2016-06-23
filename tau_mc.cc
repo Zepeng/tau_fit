@@ -33,7 +33,6 @@ using namespace std;
 
 void joint_fit_sys(char* job)
 {
-
   // Define variables used in the fit
   RooRealVar cosTheta      ("cosTheta",    "Zenith of the Cosine Angle", -1.0, 1.0);
   RooRealVar NN_output     ("NN_output",   "NeuralNet Output",           -0.1, 1.1);
@@ -262,7 +261,7 @@ void joint_fit_sys(char* job)
   RooWorkspace* tau_fit= new RooWorkspace("tau_fit");
   
   // Read the file of histograms for SK1 systematic errors.
-  TFile* fijs_sk1 = new TFile("./sys_pdf_0.05/error.sk1.root", "READ");
+  TFile* fijs_sk1 = new TFile("./sys_pdf/error.sk1.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -337,7 +336,7 @@ void joint_fit_sys(char* job)
   RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);//Gaussian constraint of sys errors
   
   // Read the file of histograms for sk2 systematic errors.
-  TFile* fijs_sk2 = new TFile("./sys_pdf_0.05/error.sk2.root", "READ");
+  TFile* fijs_sk2 = new TFile("./sys_pdf/error.sk2.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -438,7 +437,7 @@ void joint_fit_sys(char* job)
   }
   
   // Read the file of histograms for sk3 systematic errors.
-  TFile* fijs_sk3 = new TFile("./sys_pdf_0.05/error.sk3.root", "READ");
+  TFile* fijs_sk3 = new TFile("./sys_pdf/error.sk3.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -537,7 +536,7 @@ void joint_fit_sys(char* job)
   }
 
   // Read the file of histograms for sk4 systematic errors.
-  TFile* fijs_sk4 = new TFile("./sys_pdf_0.05/error.sk4.root", "READ");
+  TFile* fijs_sk4 = new TFile("./sys_pdf/error.sk4.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -648,8 +647,6 @@ void joint_fit_sys(char* job)
     TString root_file = "./mc_1.54/mc_tau_" ;
     root_file += job;
     root_file += ".root";
-    TFile* mc_study = new TFile(root_file,"recreate");
-    //TH1F* mc_xsec = new TH1F("xsec","xsec",100,0,2.5);
     TTree* mc_xsec = new TTree("mc_xsec","mc_xsec");
     float xsec;
     mc_xsec->Branch("xsec", &xsec, "xsec/F");
@@ -657,11 +654,30 @@ void joint_fit_sys(char* job)
     r3->SetSeed(0);
     for(int i = 0; i <5; i++)// Create MC sample for study.
     {
+        RooArgSet allvars = tau_fit->allVars();
+        TIterator* iter = allvars.createIterator();
+        TObject* obj;
+        TFile* sys_file = new TFile("./sys_pdf/error.merged.root","READ");
+        float event_sys = 0;
+        while((obj=iter->Next()))
+        {
+            float r_value = r3->Gaus();
+            std::string error_name = obj->GetName();
+            if(error_name.find("sk") !=std::string::npos)
+                continue;
+            tau_fit->var(obj->GetName())->setVal(r_value);
+            std::string pos = error_name + "_pos";
+            std::string neg = error_name + "_neg";
+            TH2F* th1 = (TH2F*) sys_file->Get(pos.c_str());
+            TH2F* th2 = (TH2F*)sys_file->Get(neg.c_str());
+            event_sys += r_value*(th1->Integral() - th2->Integral());
+        }
+        sys_file->Close();
         cc_nutau_xsec.setVal(1.0);
-        RooDataSet  *mc_sigI = modelI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKI->Integral()+tauHisto2DZenithSKI->Integral())));
-        RooDataSet  *mc_sigII = modelII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKII->Integral()+tauHisto2DZenithSKII->Integral())));
-        RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIII->Integral()+tauHisto2DZenithSKIII->Integral())));
-        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIV->Integral()+tauHisto2DZenithSKIV->Integral())));
+        RooDataSet  *mc_sigI = modelI.generate(axisVariables, TMath::Nint(r3->PoissonD(event_sys*1489./5327 + bkgHisto2DZenithSKI->Integral()+tauHisto2DZenithSKI->Integral())));
+        RooDataSet  *mc_sigII = modelII.generate(axisVariables, TMath::Nint(r3->PoissonD(event_sys*798./5327 + bkgHisto2DZenithSKII->Integral()+tauHisto2DZenithSKII->Integral())));
+        RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, TMath::Nint(r3->PoissonD(event_sys*518./5327 + bkgHisto2DZenithSKIII->Integral()+tauHisto2DZenithSKIII->Integral())));
+        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, TMath::Nint(r3->PoissonD(event_sys*2519./5327 + bkgHisto2DZenithSKIV->Integral()+tauHisto2DZenithSKIV->Integral())));
         RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*0.52)));
         mc_sigI->append(*mc_tauI);
         RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*0.52)));
@@ -683,6 +699,7 @@ void joint_fit_sys(char* job)
         xsec = cc_nutau_xsec.getVal();
         mc_xsec->Fill();
     }
+    TFile* mc_study = new TFile(root_file,"recreate");
     mc_xsec->Write();
     mc_study->Close();
   }
