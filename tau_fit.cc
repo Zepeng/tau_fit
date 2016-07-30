@@ -28,8 +28,24 @@
 #include <RooMinuit.h>
 #include <RooAddition.h>
 
+
 using namespace RooFit;
 using namespace std;
+
+void read_fit(string* names, float* means, float* sigmas)
+{
+    std::ifstream infile("fit_sys.txt");
+    std::string name;
+    float fit_mean, fit_sigma;
+    int iter = 0;
+    while(infile >> name >> fit_mean >> fit_sigma)
+    {
+        names[iter] = name;
+        means[iter] = fit_mean;
+        sigmas[iter] = fit_sigma;
+        iter++;
+    }
+}
 
 void joint_fit_sys(char* job)
 {
@@ -42,7 +58,7 @@ void joint_fit_sys(char* job)
   RooArgSet  chainVars     (cosTheta, NN_output, NN_selected, eventWeight);
   RooArgList axisVariables (cosTheta, NN_output);
 
-  TString objDir = "./data/" ;
+  TString objDir = "./data_16/" ;
 
   // Open SKI ,SKII ,SKIII and SKIV files
   TFile *skIfile    = new TFile((objDir +"SK-I.root"    ).Data(),  "READ");
@@ -72,6 +88,8 @@ void joint_fit_sys(char* job)
   //TTree *SKIIISigChain           = (TTree*)skIIIfile->Get("tauHistoTMVAOutputTree");
   TH2F  *tauHisto2DZenithSKIII   = (TH2F*) skIIIfile->Get("tauHistoZenith2D");
   TH2F  *bkgHisto2DZenithSKIII   = (TH2F*) skIIIfile->Get("bkgHistoZenith2D");
+  bkgHisto2DZenithSKIII->SetBinContent(6,15, 0.1);
+
   //SK4
   TTree *SKIVChain              = (TTree*)skIVfile->Get("dataHistoTMVAOutputTree");
   //TTree *SKIVBkgChain           = (TTree*)skIVfile->Get("bkgHistoTMVAOutputTree");
@@ -274,7 +292,7 @@ void joint_fit_sys(char* job)
   RooWorkspace* tau_fit= new RooWorkspace("tau_fit");
   
   // Read the file of histograms for SK1 systematic errors.
-  TFile* fijs_sk1 = new TFile("./sys_pdf/error.sk1.root", "READ");
+  TFile* fijs_sk1 = new TFile("./sys_pdf_test/error.sk1.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -349,7 +367,7 @@ void joint_fit_sys(char* job)
   RooProdPdf modelI_sys("modelI with sys errors", "modelI with sys errors", parts_pdfI);//Gaussian constraint of sys errors
   
   // Read the file of histograms for sk2 systematic errors.
-  TFile* fijs_sk2 = new TFile("./sys_pdf_0.05/error.sk2.root", "READ");
+  TFile* fijs_sk2 = new TFile("./sys_pdf_test/error.sk2.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -450,7 +468,7 @@ void joint_fit_sys(char* job)
   }
   
   // Read the file of histograms for sk3 systematic errors.
-  TFile* fijs_sk3 = new TFile("./sys_pdf_0.05/error.sk3.root", "READ");
+  TFile* fijs_sk3 = new TFile("./sys_pdf_test/error.sk3.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -549,7 +567,7 @@ void joint_fit_sys(char* job)
   }
 
   // Read the file of histograms for sk4 systematic errors.
-  TFile* fijs_sk4 = new TFile("./sys_pdf_0.05/error.sk4.root", "READ");
+  TFile* fijs_sk4 = new TFile("./sys_pdf_test/error.sk4.root", "READ");
 
   // Read the names of systematic errors from fijs file, and store in a vector of string.
   // create Gaussian constraint for each systematic error.
@@ -570,7 +588,7 @@ void joint_fit_sys(char* job)
         sk4_errors.push_back(error_term);
         // Define the variables for systematic errors, 1 means shifting the systematic error by 1 sigma
         // // The PDFs of shifting 1 sigma is built with Osc3++. 
-        TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-3,3], 0, 1.0)", 
+        TString constraint_expr = TString::Format("RooGaussian::%s_sys(%s[-1.,1.5], 0, 1.0)", 
                 error_term.c_str(), error_term.c_str());//Gaussian constraint.
         if(iter1 == sk1_errors.end()) tau_fit->factory(constraint_expr);
         TString constraint_name = TString::Format("%s_sys", error_term.c_str());
@@ -690,6 +708,65 @@ void joint_fit_sys(char* job)
     mc_xsec->Write();
     mc_study->Close();
   }
+  //Test CL
+  if(kTRUE)
+  {
+    RooRandom::randomGenerator()->SetSeed(0);
+    TString root_file = "./mc_CL/mc_tau_" ;
+    root_file += job;
+    root_file += ".root";
+    TFile* mc_study = new TFile(root_file,"recreate");
+    //TH1F* mc_xsec = new TH1F("xsec","xsec",100,0,2.5);
+    TTree* mc_xsec = new TTree("mc_xsec","mc_xsec");
+    float xsec;
+    mc_xsec->Branch("xsec", &xsec, "xsec/F");
+    TRandom3* r3 = new TRandom3();
+    r3->SetSeed(0);
+    string names[43];
+    float means[43];
+    float sigmas[43];
+    read_fit(names, means, sigmas);
+    for(int i = 0; i <5; i++)// Create MC sample for study.
+    {
+        /*for(int iter = 0; iter < 43; iter++)
+        {
+            float sys_rand = r3->Gaus(0, 0.1);
+            if(TMath::Abs(sys_rand)>1) sys_rand = sys_rand/TMath::Abs(sys_rand)*1;
+            tau_fit->var(names[i].c_str())->setVal(sys_rand);
+        }*/
+        float expected = tauHisto2DZenithSKI->Integral();
+        float tau_rand = r3->PoissonD(1.47*expected)/expected;
+        cc_nutau_xsec.setVal(tau_rand);
+        RooDataSet  *mc_sigI = modelI.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKI->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKI->Integral()))));
+        RooDataSet  *mc_sigII = modelII.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKII->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKII->Integral()))));
+        RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIII->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKIII->Integral()))));
+        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIV->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKIV->Integral()))));
+        /*RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*1.47)));
+        mc_sigI->append(*mc_tauI);
+        RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*1.47)));
+        mc_sigII->append(*mc_tauII);
+        RooDataSet  *mc_tauIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIII->Integral()*1.47)));
+        mc_sigIII->append(*mc_tauIII);
+        RooDataSet  *mc_tauIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIV->Integral()*1.47)));
+        mc_sigIV->append(*mc_tauIV);*/
+        cc_nutau_xsec.setVal(1.47);
+        //Create likelihood function for each SK period.
+        RooAbsReal* nll_sk1 = modelI.createNLL(*mc_sigI,  RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
+        RooAbsReal* nll_sk2 = modelII.createNLL(*mc_sigII,  RooFit::ExternalConstraints(modelII_sys),RooFit::Extended(kTRUE));
+        RooAbsReal* nll_sk3 = modelIII.createNLL(*mc_sigIII,  RooFit::ExternalConstraints(modelIII_sys),RooFit::Extended(kTRUE));
+        RooAbsReal* nll_sk4 = modelIV.createNLL(*mc_sigIV,  RooFit::ExternalConstraints(modelIV_sys),RooFit::Extended(kTRUE));
+        RooAddition nllCombined("nll_combined", "nll_combined", RooArgSet(*nll_sk1, *nll_sk2, *nll_sk3, *nll_sk4));
+        RooMinuit minit(nllCombined);
+  
+        minit.migrad();
+        //mc_xsec->Fill(cc_nutau_xsec.getVal());
+        xsec = cc_nutau_xsec.getVal();
+        mc_xsec->Fill();
+    }
+    mc_xsec->Write();
+    mc_study->Close();
+  }
+
 
   //Fit the data against PDFs.
   if(kFALSE)
@@ -703,9 +780,25 @@ void joint_fit_sys(char* job)
       RooMinuit minit(nllCombined);
   
       minit.migrad();
+    
+      string names[43];
+      float means[43];
+      float sigmas[43];
+      read_fit(names, means, sigmas);
+      for(int i = 0; i < 43; i++)
+          tau_fit->var(names[i].c_str())->setVal(means[i]);
+
+      //plot profile likelihood of cc_nutau_xsec
+      RooAbsReal* pll_tau = nllCombined.createProfile(cc_nutau_xsec);
+      RooPlot* tau_frame = cc_nutau_xsec.frame(Bins(100), Range(0.,3.));
+      pll_tau->plotOn(tau_frame, ShiftToZero());
+      //TFile* pll_root = new TFile("pll_tau.root","RECREATE");
+      //pll_tau->Write();
+      //pll_root->Close();
       //cc_nutau_xsec.Print();
   }
 }
+
 
 int main(int argc, char** argv) {
     std::cout << argc << argv[1] << std::endl;// Read paramters from command line.
