@@ -195,13 +195,7 @@ def store_sys():
     infile = open('refit.txt','r')
     i = 1
     flag = 0
-    fit_sys = ROOT.TTree('fit_sys','fit_sys')
-    strings = ROOT.vector('string')()
-    fit_mean = ROOT.vector('float')()
-    fit_sigma = ROOT.vector('float')()
-    fit_sys.Branch('sys_term', strings)
-    fit_sys.Branch('sys_mean', fit_mean)
-    fit_sys.Branch('sys_sigma', fit_sigma)
+    outfile = open('fit_sys.txt', 'w')
     for line in infile:
         if 'NAME' in line:
             flag = flag + 1
@@ -213,15 +207,11 @@ def store_sys():
             if len(line.strip()) < 30:
                 continue
             words = line.strip().split()
-            strings.push_back(words[1])
-            fit_mean.push_back(float(words[2]))
-            fit_sigma.push_back(float(words[3]))
+            outfile.write('%s %f %f\n' % (words[1], float(words[2]), float(words[3])) )
+            #strings.push_back(words[1])
+            #fit_mean.push_back(float(words[2]))
+            #fit_sigma.push_back(float(words[3]))
             i = i+1
-    fit_sys.Fill()
-    fit_sys.Scan()
-    root_sys = ROOT.TFile('fit_sys.root','RECREATE')
-    fit_sys.Write()
-    root_sys.Close()
 
 def plot_sys():
     ROOT.gROOT.Macro( os.path.expanduser( '~/Root/rootlogon.C' ) )
@@ -270,4 +260,4 @@ def plot_sys():
     th3.GetXaxis().LabelsOption('v')
     c1.Print('error_terms.png','png')
 if __name__ == '__main__':
-    store_sys()
+    plot_sys()
