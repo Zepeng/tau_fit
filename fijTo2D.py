@@ -24,12 +24,31 @@ def get_max(skx, sample, error):
     neg_max = min(convert(skx, sample, error))
     return max(pos_max, abs(neg_max))
 
+def select_errors():
+    selection = []
+    sample = 'fcmc'
+    for skx in range(1,5):
+        errors = get_errors(skx, sample)
+        sk_type = ['I', 'II','III','IV']
+        event_file = ROOT.TFile('./data_16/SK-' + sk_type[skx - 1] + '.root','READ')
+        dict_sample = {'fcmc':'bkg','tau':'tau'}
+        events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
+        for error in errors:
+            fijs = convert(skx, sample, error)
+            if get_max(skx, sample, error) < 0.025 and 't2k' not in error and 'ring_separation' not in error: #and get_max(skx, 'tau', error) < 0.2:
+                continue
+            else:
+                if error not in selection:
+                    selection.append(error)
+    return selection
 def write_root(skx, sample):
+    selected = select_errors()
     errors = get_errors(skx, sample)
-    print errors
-    error_file = ROOT.TFile('./sys_pdf/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
+    #print errors
+    error_file = ROOT.TFile('./sys_pdf_test/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
+    allerror_file = ROOT.TFile('./error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
     sk_type = ['I', 'II','III','IV']
-    event_file = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
+    event_file = ROOT.TFile('./data_16/SK-' + sk_type[skx - 1] + '.root','READ')
     dict_sample = {'fcmc':'bkg','tau':'tau'}
     events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
     th1 = ROOT.TH1F('th1', 'th1', 230, 0,230)
@@ -37,10 +56,14 @@ def write_root(skx, sample):
         th1.SetBinContent(i+1,0)
     for error in errors:
         fijs = convert(skx, sample, error)
-        if get_max(skx, sample, error) < 0.02 or 't2k' in error : #and 'pid_multi_ring' not in error and 'polfit_1_ring' not in error: #and get_max(skx, 'tau', error) < 0.2:
+        if get_max(skx, sample, error) < 0.025 and 't2k' not in error and 'non_nue_bg_mg_1ring_elike' not in error and error not in selected:# and 'polfit_1_ring' not in error: #and get_max(skx, 'tau', error) < 0.2:
             continue
         for m in range(len(fijs)):
             th1.SetBinContent(m+1, fijs[m] + th1.GetBinContent(m+1))
+        if 't2k' in error:
+            error = error[4:]
+        th2_all = ROOT.TH2F(error + '_all',error + '_all', 15, -1.0, 1.0, 15, -0.1, 1.1 )
+        th2_all.SetDirectory(error_file)
         th2_pos = ROOT.TH2F(error + '_pos',error + '_pos', 15, -1.0, 1.0, 15, -0.1, 1.1 )
         th2_pos.SetDirectory(error_file)
         th2_neg = ROOT.TH2F(error + '_neg', error + '_neg', 15, -1.0, 1.0, 15, -0.1, 1.1)
@@ -48,6 +71,7 @@ def write_root(skx, sample):
         error_file.cd()
         for i in range(15):
             for j in range(15):
+                th2_all.SetBinContent(i+1, j+1, fijs[15*i + j]*events_2D.GetBinContent(i+1, j+1) )
                 if fijs[15*i + j] > 0:
                     th2_pos.SetBinContent(i+1, j+1, fijs[15*i + j]*events_2D.GetBinContent(i+1, j+1) )
                 else:
@@ -56,15 +80,18 @@ def write_root(skx, sample):
         print error, th2_neg.GetMaximum()
         th2_pos.Write()
         th2_neg.Write()
+        allerror_file.cd()
+        th2_all.Write()
 
     error_file.Close()
+    allerror_file.Close()
 
 def mc_pdf(skx, sample):
     errors = get_errors(skx, sample)
-    print errors
+    #print errors
     error_file = ROOT.TFile('./mc_pdf/error.sk' + str(skx) + '.' + sample + '.root','RECREATE')
     sk_type = ['I', 'II','III','IV']
-    event_file = ROOT.TFile('./data/SK-' + sk_type[skx - 1] + '.root','READ')
+    event_file = ROOT.TFile('./data_16/SK-' + sk_type[skx - 1] + '.root','READ')
     dict_sample = {'fcmc':'bkg','tau':'tau'}
     events_2D = event_file.Get(dict_sample[sample] + 'HistoZenith2D')
     th1 = ROOT.TH1F('th1', 'th1', 230, 0,230)
@@ -84,7 +111,7 @@ def mc_pdf(skx, sample):
         for i in range(15):
             for j in range(15):
                 th2_mc.SetBinContent(i+1, j+1, fijs[15*i + j]*events_2D.GetBinContent(i+1, j+1) )
-        print error, th2_mc.GetMaximum()
+        #print error, th2_mc.GetMaximum()
         th2_mc.Write()
 
     error_file.Close()
