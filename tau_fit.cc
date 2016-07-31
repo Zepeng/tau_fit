@@ -728,12 +728,10 @@ void joint_fit_sys(char* job)
     read_fit(names, means, sigmas);
     for(int i = 0; i <5; i++)// Create MC sample for study.
     {
-        /*for(int iter = 0; iter < 43; iter++)
+        for(int iter = 0; iter < 43; iter++)
         {
-            float sys_rand = r3->Gaus(0, 0.1);
-            if(TMath::Abs(sys_rand)>1) sys_rand = sys_rand/TMath::Abs(sys_rand)*1;
-            tau_fit->var(names[i].c_str())->setVal(sys_rand);
-        }*/
+            tau_fit->var(names[i].c_str())->setVal(means[iter]);
+        }
         float expected = tauHisto2DZenithSKI->Integral();
         float tau_rand = r3->PoissonD(1.47*expected)/expected;
         cc_nutau_xsec.setVal(tau_rand);
