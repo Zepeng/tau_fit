@@ -212,7 +212,7 @@ void joint_fit_sys(char* job)
   coeff_listIV.add(tau_normIV);
 
   //SK1-4 MC study - statistical only
-  if(kFALSE)
+  if(kTRUE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
     TString root_file = "./mc_stat/mc_tau_" ;
@@ -237,16 +237,16 @@ void joint_fit_sys(char* job)
     RooAddPdf modelIV_stat ("modelIV",  "signal+bkgd SKIV",  pdf_listIV, coeff_listIV );
     for(int i = 0; i < 100; i++)// Create MC sample for study.
     {
-        RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKI->Integral())));
+        RooDataSet  *mc_bkgI = bkgPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.0*bkgHisto2DZenithSKI->Integral())));
         RooDataSet  *mc_sigI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKI->Integral())));
         mc_sigI->append(*mc_bkgI);
-        RooDataSet  *mc_bkgII = bkgPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKII->Integral())));
+        RooDataSet  *mc_bkgII = bkgPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.0*bkgHisto2DZenithSKII->Integral())));
         RooDataSet  *mc_sigII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKII->Integral())));
         mc_sigII->append(*mc_bkgII);
-        RooDataSet  *mc_bkgIII = bkgPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIII->Integral())));
+        RooDataSet  *mc_bkgIII = bkgPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.0*bkgHisto2DZenithSKIII->Integral())));
         RooDataSet  *mc_sigIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKIII->Integral())));
         mc_sigIII->append(*mc_bkgIII);
-        RooDataSet  *mc_bkgIV = bkgPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.02*bkgHisto2DZenithSKIV->Integral())));
+        RooDataSet  *mc_bkgIV = bkgPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.0*bkgHisto2DZenithSKIV->Integral())));
         RooDataSet  *mc_sigIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(1.5*tauHisto2DZenithSKIV->Integral())));
         mc_sigIV->append(*mc_bkgIV);
         //Create likelihood function for each SK period.
@@ -731,18 +731,18 @@ void joint_fit_sys(char* job)
         float expected = tauHisto2DZenithSKI->Integral();
         float tau_rand = r3->PoissonD(1.47*expected)/expected;
         cc_nutau_xsec.setVal(tau_rand);
-        RooDataSet  *mc_sigI = modelI.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKI->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKI->Integral()))));
-        RooDataSet  *mc_sigII = modelII.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKII->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKII->Integral()))));
-        RooDataSet  *mc_sigIII = modelIII.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIII->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKIII->Integral()))));
-        RooDataSet  *mc_sigIV = modelIV.generate(axisVariables, 1.02*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIV->Integral()+tau_rand*r3->PoissonD(tauHisto2DZenithSKIV->Integral()))));
-        /*RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*1.47)));
+        RooDataSet  *mc_sigI = bkgPdfI.generate(axisVariables, 1.0*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKI->Integral())));//+tau_rand*r3->PoissonD(tauHisto2DZenithSKI->Integral()))));
+        RooDataSet  *mc_sigII = bkgPdfII.generate(axisVariables, 1.0*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKII->Integral())));//+tau_rand*r3->PoissonD(tauHisto2DZenithSKII->Integral()))));
+        RooDataSet  *mc_sigIII = bkgPdfIII.generate(axisVariables, 1.0*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIII->Integral())));//+tau_rand*r3->PoissonD(tauHisto2DZenithSKIII->Integral()))));
+        RooDataSet  *mc_sigIV = bkgPdfIV.generate(axisVariables, 1.0*TMath::Nint(r3->PoissonD(bkgHisto2DZenithSKIV->Integral())));//+tau_rand*r3->PoissonD(tauHisto2DZenithSKIV->Integral()))));
+        RooDataSet  *mc_tauI = sigPdfI.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKI->Integral()*tau_rand)));
         mc_sigI->append(*mc_tauI);
-        RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*1.47)));
+        RooDataSet  *mc_tauII = sigPdfII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKII->Integral()*tau_rand)));
         mc_sigII->append(*mc_tauII);
-        RooDataSet  *mc_tauIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIII->Integral()*1.47)));
+        RooDataSet  *mc_tauIII = sigPdfIII.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIII->Integral()*tau_rand)));
         mc_sigIII->append(*mc_tauIII);
-        RooDataSet  *mc_tauIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIV->Integral()*1.47)));
-        mc_sigIV->append(*mc_tauIV);*/
+        RooDataSet  *mc_tauIV = sigPdfIV.generate(axisVariables, TMath::Nint(r3->PoissonD(tauHisto2DZenithSKIV->Integral()*tau_rand)));
+        mc_sigIV->append(*mc_tauIV);
         cc_nutau_xsec.setVal(1.47);
         //Create likelihood function for each SK period.
         RooAbsReal* nll_sk1 = modelI.createNLL(*mc_sigI,  RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
@@ -763,7 +763,7 @@ void joint_fit_sys(char* job)
 
 
   //Fit the data against PDFs.
-  if(kTRUE)
+  if(kFALSE)
   {
       //Create likelihood function for each SK period.
       RooAbsReal* nll_sk1 = modelI.createNLL(dataSetI,  RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
