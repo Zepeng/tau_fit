@@ -709,7 +709,7 @@ void joint_fit_sys(char* job)
     mc_study->Close();
   }
   //Test CL
-  if(kTRUE)
+  if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
     TString root_file = "./mc_CL/mc_tau_" ;
@@ -728,10 +728,6 @@ void joint_fit_sys(char* job)
     read_fit(names, means, sigmas);
     for(int i = 0; i <5; i++)// Create MC sample for study.
     {
-        for(int iter = 0; iter < 43; iter++)
-        {
-            tau_fit->var(names[i].c_str())->setVal(means[iter]);
-        }
         float expected = tauHisto2DZenithSKI->Integral();
         float tau_rand = r3->PoissonD(1.47*expected)/expected;
         cc_nutau_xsec.setVal(tau_rand);
@@ -767,7 +763,7 @@ void joint_fit_sys(char* job)
 
 
   //Fit the data against PDFs.
-  if(kFALSE)
+  if(kTRUE)
   {
       //Create likelihood function for each SK period.
       RooAbsReal* nll_sk1 = modelI.createNLL(dataSetI,  RooFit::ExternalConstraints(modelI_sys),RooFit::Extended(kTRUE));
@@ -786,13 +782,18 @@ void joint_fit_sys(char* job)
       for(int i = 0; i < 43; i++)
           tau_fit->var(names[i].c_str())->setVal(means[i]);
 
-      //plot profile likelihood of cc_nutau_xsec
-      RooAbsReal* pll_tau = nllCombined.createProfile(cc_nutau_xsec);
-      RooPlot* tau_frame = cc_nutau_xsec.frame(Bins(100), Range(0.,3.));
-      pll_tau->plotOn(tau_frame, ShiftToZero());
-      //TFile* pll_root = new TFile("pll_tau.root","RECREATE");
-      //pll_tau->Write();
-      //pll_root->Close();
+      float minimum = nllCombined.getVal();
+      TH1F* h1 = new TH1F("pll","pll", 1200, 0.9,2.1 );
+      TFile* pll_file = new TFile("pll.root","RECREATE");
+      for(int i =0; i < 1200; i++)
+      {
+          cc_nutau_xsec.setVal(0.9+0.001*i);
+          cc_nutau_xsec.setConstant(kTRUE);
+          h1->SetBinContent(i, nllCombined.getVal() - minimum);
+          std::cout << 0.9+0.001*i << " " << nllCombined.getVal() - minimum << std::endl;
+      }
+      h1->Write();
+      pll_file->Close();
       //cc_nutau_xsec.Print();
   }
 }
