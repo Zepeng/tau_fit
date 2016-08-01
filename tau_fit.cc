@@ -212,7 +212,7 @@ void joint_fit_sys(char* job)
   coeff_listIV.add(tau_normIV);
 
   //SK1-4 MC study - statistical only
-  if(kTRUE)
+  if(kFALSE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
     TString root_file = "./mc_stat/mc_tau_" ;
@@ -709,7 +709,7 @@ void joint_fit_sys(char* job)
     mc_study->Close();
   }
   //Test CL
-  if(kFALSE)
+  if(kTRUE)
   {
     RooRandom::randomGenerator()->SetSeed(0);
     TString root_file = "./mc_CL/mc_tau_" ;
